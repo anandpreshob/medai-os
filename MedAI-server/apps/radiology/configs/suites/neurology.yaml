@@ -1,0 +1,393 @@
+# MedAI Neurology Suite Configuration
+#
+# Provides AI-assisted brain lesion analysis, MS tracking,
+# stroke assessment, and brain volumetrics.
+
+suite_id: neurology
+suite_type: neurology
+display_name: "Neurology Suite"
+version: "1.0.0"
+description: "Brain lesion analysis, MS tracking, and neuroimaging workflows"
+
+# === Segmentation Tasks ===
+tasks:
+  brain_parcellation:
+    task_id: brain_parcellation
+    display_name: "Brain Parcellation"
+    description: "Segment brain structures (gray matter, white matter, ventricles)"
+    primary_model: totalsegmentator
+    fallback_model: smartedit
+    model_params:
+      roi_subset:
+        - brain
+        - cerebral_white_matter
+        - cerebral_cortex
+        - lateral_ventricle
+        - cerebellum
+        - brainstem
+    default_label_name: "Brain"
+    body_regions: ["head", "brain"]
+    modalities: ["CT", "MR"]
+
+  brain_tumor:
+    task_id: brain_tumor
+    display_name: "Brain Tumor"
+    description: "Segment brain tumors (glioma, meningioma, metastases)"
+    primary_model: biomedparse
+    fallback_model: smartedit
+    model_params:
+      text_prompt: "brain tumor"
+    default_label_name: "Brain_Tumor"
+    label_color: "#FF6B6B"
+    body_regions: ["head", "brain"]
+    modalities: ["MR", "CT"]
+
+  glioblastoma:
+    task_id: glioblastoma
+    display_name: "Glioblastoma (GBM)"
+    description: "Segment glioblastoma with enhancing and non-enhancing components"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "glioblastoma multiforme tumor"
+    default_label_name: "GBM"
+    label_color: "#DC143C"
+    body_regions: ["brain"]
+    modalities: ["MR"]
+
+  meningioma:
+    task_id: meningioma
+    display_name: "Meningioma"
+    description: "Segment meningiomas"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "meningioma"
+    default_label_name: "Meningioma"
+    label_color: "#FF8C00"
+    body_regions: ["brain"]
+    modalities: ["MR", "CT"]
+
+  ms_lesion:
+    task_id: ms_lesion
+    display_name: "MS Lesions"
+    description: "Detect and segment multiple sclerosis lesions"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "multiple sclerosis white matter lesion"
+    default_label_name: "MS_Lesion"
+    label_color: "#FFD700"
+    body_regions: ["brain"]
+    modalities: ["MR"]
+
+  white_matter_hyperintensity:
+    task_id: white_matter_hyperintensity
+    display_name: "White Matter Hyperintensities"
+    description: "Detect white matter hyperintensities (age-related, vascular)"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "white matter hyperintensity"
+    default_label_name: "WMH"
+    label_color: "#FAFAD2"
+    body_regions: ["brain"]
+    modalities: ["MR"]
+
+  stroke_lesion:
+    task_id: stroke_lesion
+    display_name: "Stroke Lesion"
+    description: "Segment acute and chronic stroke lesions"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "stroke infarct lesion"
+    default_label_name: "Stroke"
+    label_color: "#FF4500"
+    body_regions: ["brain"]
+    modalities: ["MR", "CT"]
+
+  hemorrhage:
+    task_id: hemorrhage
+    display_name: "Intracranial Hemorrhage"
+    description: "Detect and segment intracranial hemorrhage"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "intracranial hemorrhage"
+    default_label_name: "ICH"
+    label_color: "#8B0000"
+    body_regions: ["brain"]
+    modalities: ["CT"]
+
+  interactive_neuro:
+    task_id: interactive_neuro
+    display_name: "Interactive Brain Segmentation"
+    description: "Click-to-segment any brain structure"
+    primary_model: smartedit
+    model_params:
+      nninter: "sam3"
+    default_label_name: "Brain_Structure"
+    body_regions: ["brain"]
+
+# === Structure Naming ===
+structure_naming:
+  convention: "Custom"
+  mappings:
+    brain: "Brain"
+    cerebral_white_matter: "White_Matter"
+    cerebral_cortex: "Gray_Matter"
+    lateral_ventricle: "Ventricle_Lateral"
+    cerebellum: "Cerebellum"
+    brainstem: "Brainstem"
+    hippocampus: "Hippocampus"
+    thalamus: "Thalamus"
+    caudate: "Caudate"
+    putamen: "Putamen"
+    globus_pallidus: "Globus_Pallidus"
+    amygdala: "Amygdala"
+
+# === Structure Colors (for visualization) ===
+structure_colors:
+  Brain: "#FFB6C1"
+  White_Matter: "#FFFFFF"
+  Gray_Matter: "#808080"
+  Ventricle_Lateral: "#00BFFF"
+  Cerebellum: "#98FB98"
+  Brainstem: "#DDA0DD"
+  Hippocampus: "#FFD700"
+  Thalamus: "#FF6347"
+  Brain_Tumor: "#FF0000"
+  GBM: "#DC143C"
+  MS_Lesion: "#FFD700"
+  WMH: "#FAFAD2"
+  Stroke: "#FF4500"
+  ICH: "#8B0000"
+
+# === Analytics Configuration ===
+default_analytics:
+  - volumetrics
+  - lesion_count
+  - lesion_load
+  - brain_volumetrics
+  - laterality
+  - icv_normalization
+  - asymmetry_indices
+  - lesion_classification
+
+analytics_config:
+  volumetrics:
+    enabled: true
+    unit: "mL"
+  lesion_count:
+    enabled: true
+    min_volume_mm3: 10  # Minimum lesion volume to count
+  lesion_load:
+    enabled: true
+    description: "Total lesion volume as percentage of brain volume"
+  brain_volumetrics:
+    enabled: true
+    regions:
+      - total_intracranial_volume
+      - gray_matter_volume
+      - white_matter_volume
+      - ventricle_volume
+      - hippocampus_left
+      - hippocampus_right
+      - temporal_lobe_left
+      - temporal_lobe_right
+  laterality:
+    enabled: true
+    description: "Left vs right hemisphere comparison"
+
+  # ICV Normalization - normalize volumes to intracranial volume
+  icv_normalization:
+    enabled: true
+    description: "Normalize regional volumes to ICV (per 1000 mL)"
+    formula: "(volume_ml / icv_ml) * 1000"
+
+  # Asymmetry Indices - L/R comparison for paired structures
+  asymmetry_indices:
+    enabled: true
+    description: "Compute asymmetry for paired brain structures"
+    formula: "((L - R) / ((L + R) / 2)) * 100"
+    thresholds:
+      normal: 5       # |AI| < 5%
+      mild: 10        # 5% <= |AI| < 10%
+      significant: 15 # 10% <= |AI| < 15%
+      severe: 100     # |AI| >= 15%
+    paired_structures:
+      - hippocampus
+      - temporal_lobe
+      - frontal_lobe
+      - parietal_lobe
+      - occipital_lobe
+      - thalamus
+      - caudate
+      - putamen
+      - amygdala
+      - lateral_ventricle
+
+  # Lesion Classification - MS-style and vascular location categories
+  lesion_classification:
+    enabled: true
+    styles:
+      - ms_style
+      - vascular
+    ms_style:
+      description: "Classify lesions by MS-typical locations"
+      categories:
+        periventricular:
+          description: "Within 3mm of lateral ventricles"
+          distance_threshold_mm: 3
+          mcdonald_criteria: true
+        juxtacortical:
+          description: "Within 3mm of cortical gray matter"
+          distance_threshold_mm: 3
+          mcdonald_criteria: true
+        infratentorial:
+          description: "Brainstem or cerebellum"
+          regions: ["brainstem", "cerebellum"]
+          mcdonald_criteria: true
+        deep_white_matter:
+          description: "Other white matter locations"
+          mcdonald_criteria: false
+        cortical:
+          description: "Within cortical gray matter"
+          mcdonald_criteria: false
+        spinal_cord:
+          description: "Spinal cord lesions"
+          mcdonald_criteria: true
+    vascular:
+      description: "Classify lesions by vascular territory"
+      categories:
+        - aca  # Anterior cerebral artery
+        - mca  # Middle cerebral artery
+        - pca  # Posterior cerebral artery
+        - watershed
+
+  # Regional Grouping - group structures by anatomical region
+  regional_grouping:
+    enabled: true
+    groups:
+      frontal:
+        structures: ["superior_frontal", "middle_frontal", "inferior_frontal", "orbitofrontal", "precentral"]
+      temporal:
+        structures: ["superior_temporal", "middle_temporal", "inferior_temporal", "fusiform", "hippocampus", "amygdala"]
+      parietal:
+        structures: ["superior_parietal", "inferior_parietal", "postcentral", "precuneus"]
+      occipital:
+        structures: ["lateral_occipital", "cuneus", "lingual", "pericalcarine"]
+      subcortical:
+        structures: ["thalamus", "caudate", "putamen", "pallidum", "accumbens"]
+      cerebellum:
+        structures: ["cerebellum_cortex", "cerebellum_white_matter"]
+      brainstem:
+        structures: ["brainstem"]
+      ventricles:
+        structures: ["lateral_ventricle", "third_ventricle", "fourth_ventricle"]
+      white_matter:
+        structures: ["cerebral_white_matter", "corpus_callosum"]
+
+  # Atrophy Rate Calculation
+  atrophy_analysis:
+    enabled: true
+    description: "Calculate annualized atrophy rates from longitudinal data"
+    formula: "((baseline - current) / baseline) * 100 * (365 / interval_days)"
+    reference_ranges:
+      normal_young:   # Age 20-60
+        rate_min: 0.2
+        rate_max: 0.5
+        unit: "%/year"
+      normal_elderly: # Age 60+
+        rate_min: 0.5
+        rate_max: 1.0
+        unit: "%/year"
+      mci:            # Mild cognitive impairment
+        rate_min: 1.0
+        rate_max: 2.0
+        unit: "%/year"
+      ad_hippocampus: # Alzheimer's hippocampus
+        rate_min: 3.0
+        rate_max: 6.0
+        unit: "%/year"
+    interpretation:
+      normal: "rate <= normal_elderly.rate_max"
+      accelerated: "normal_elderly.rate_max < rate <= mci.rate_max"
+      pathological: "rate > mci.rate_max"
+
+# === QC Configuration ===
+qc_config:
+  image_qc:
+    enabled: true
+    checks:
+      motion:
+        enabled: true
+        method: "edge_variance"
+        thresholds:
+          warning: 40
+          critical: 70
+      snr:
+        enabled: true
+        method: "brain_background_ratio"
+        thresholds:
+          poor: 8
+          marginal: 15
+          good: 25
+      coverage:
+        enabled: true
+        method: "boundary_detection"
+        thresholds:
+          warning: 95
+          critical: 90
+      skull_strip:
+        enabled: true
+        method: "boundary_analysis"
+        checks:
+          - residual_skull
+          - over_stripping
+          - boundary_smoothness
+
+  segmentation_qc:
+    enabled: true
+    checks:
+      - volume_outliers
+      - topology_errors
+      - boundary_smoothness
+      - partial_volume
+
+# === Export Configuration ===
+export_formats:
+  - nifti
+  - csv
+  - json
+  - dicom-seg
+
+# === Detection Hints (for auto-detection) ===
+detection_hints:
+  modalities:
+    - MR
+    - CT
+  body_parts:
+    - HEAD
+    - BRAIN
+    - NECK
+  description_keywords:
+    - brain
+    - neuro
+    - stroke
+    - ms
+    - multiple sclerosis
+    - lesion
+    - white matter
+    - glioma
+    - glioblastoma
+    - meningioma
+    - tumor
+    - flair
+    - dwi
+    - adc
+    - perfusion
+    - mra
+  protocol_keywords:
+    - brain
+    - head
+    - neuro
+    - dwi
+    - flair
+    - stroke
+    - epilepsy

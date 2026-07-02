@@ -1,0 +1,174 @@
+# MedAI Oncology Suite Configuration
+# Domain-specific workflow for tumor analysis and volumetrics
+
+suite_id: oncology
+suite_type: oncology
+display_name: "Oncology Suite"
+description: "Tumor analysis, volumetrics, and response assessment"
+version: "1.0.0"
+icon: "Target"
+
+# Default settings
+defaults:
+  layout: "fourUp"
+  window_level_presets:
+    - ct-soft-tissue
+    - ct-lung
+    - ct-liver
+    - ct-bone
+
+# Task definitions for this suite
+tasks:
+  # Brain tumor segmentation using BiomedParse
+  brain_tumor:
+    task_id: brain_tumor
+    display_name: "Brain Tumor"
+    primary_model: biomedparse
+    fallback_model: segmentation
+    model_params:
+      text_prompt: "brain tumor glioma"
+    default_label_name: "GTV_Brain"
+    label_color: "#FF6B6B"
+    body_regions:
+      - head
+      - brain
+    priority: 1
+
+  # Liver lesion segmentation
+  liver_lesion:
+    task_id: liver_lesion
+    display_name: "Liver Lesion"
+    primary_model: biomedparse
+    fallback_model: segmentation
+    model_params:
+      text_prompt: "liver tumor hepatocellular carcinoma metastasis"
+    default_label_name: "GTV_Liver"
+    label_color: "#8B4513"
+    body_regions:
+      - abdomen
+      - liver
+    priority: 2
+
+  # Lung nodule segmentation
+  lung_nodule:
+    task_id: lung_nodule
+    display_name: "Lung Nodule"
+    primary_model: biomedparse
+    fallback_model: segmentation
+    model_params:
+      text_prompt: "lung nodule lung cancer"
+    default_label_name: "GTV_Lung"
+    label_color: "#00CED1"
+    body_regions:
+      - chest
+      - lung
+    priority: 3
+
+  # Kidney tumor segmentation
+  kidney_tumor:
+    task_id: kidney_tumor
+    display_name: "Kidney Tumor"
+    primary_model: biomedparse
+    fallback_model: segmentation
+    model_params:
+      text_prompt: "kidney tumor renal cell carcinoma"
+    default_label_name: "GTV_Kidney"
+    label_color: "#228B22"
+    body_regions:
+      - abdomen
+      - kidney
+    priority: 4
+
+  # Generic tumor using interactive segmentation
+  generic_tumor:
+    task_id: generic_tumor
+    display_name: "Generic Tumor (Interactive)"
+    primary_model: segmentation
+    model_params:
+      nninter: true
+    default_label_name: "GTV"
+    label_color: "#FF0000"
+    body_regions:
+      - any
+    priority: 10
+    interactive: true
+
+  # Multi-organ segmentation for context
+  organ_context:
+    task_id: organ_context
+    display_name: "Organ Context (TotalSegmentator)"
+    primary_model: segmentation
+    model_params:
+      roi_subset:
+        - liver
+        - spleen
+        - kidney_left
+        - kidney_right
+        - lung_upper_lobe_left
+        - lung_upper_lobe_right
+        - lung_lower_lobe_left
+        - lung_lower_lobe_right
+        - heart
+    default_label_name: "Organ"
+    body_regions:
+      - any
+    priority: 20
+
+# Analytics configuration
+analytics:
+  default_metrics:
+    - volumetrics
+    - connected_components
+    - lesion_count
+
+  enabled_features:
+    - total_volume
+    - instance_count
+    - largest_lesion
+    - centroid
+    - bounding_box
+
+# Export configuration
+exports:
+  allowed_formats:
+    - nifti
+    - dicom-seg
+    - csv
+    - json
+
+  default_format: nifti
+
+# Model preferences (in order of priority)
+model_preferences:
+  - biomedparse
+  - segmentation
+  - nninteractive
+
+# Detection hints for auto-selection
+detection_hints:
+  modalities:
+    - CT
+    - MR
+    - PT
+  body_parts:
+    - LIVER
+    - LUNG
+    - CHEST
+    - ABDOMEN
+    - PELVIS
+    - HEAD
+    - BRAIN
+  description_keywords:
+    - tumor
+    - mass
+    - lesion
+    - oncology
+    - cancer
+    - metasta
+    - carcinoma
+    - nodule
+  protocol_keywords:
+    - staging
+    - restaging
+    - follow-up
+    - surveillance

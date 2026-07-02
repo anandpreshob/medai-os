@@ -1,0 +1,32 @@
+# MedAI LLM Service Requirements
+# Report generation and worklist triaging with LangChain/LangGraph
+# CPU-only service using cloud LLM APIs (Gemini, OpenAI)
+#
+# Image Size: ~2GB | Dependencies: 20+
+
+# Web server
+fastapi==0.115.0
+uvicorn==0.32.0
+pydantic==2.9.2
+pydantic-core==2.23.4
+python-multipart==0.0.12
+httpx==0.27.0
+
+# LangChain core (pinned to avoid resolution issues)
+langchain-core==0.3.28
+langchain-google-genai==2.0.8
+langsmith==0.2.10
+
+# LangGraph for agentic workflows
+langgraph>=0.2.0
+
+# LLM API clients
+google-generativeai==0.8.3
+openai==1.58.1
+anthropic==0.39.0
+
+# Utilities
+python-dotenv==1.0.1
+pyyaml==6.0.2
+Pillow==11.0.0
+numpy==1.26.4

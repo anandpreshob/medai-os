@@ -1,0 +1,59 @@
+# MedAI Chat Service
+# LangGraph-based chat orchestration for radiology Q&A
+# GPU Required: NO (uses cloud LLM APIs)
+# Port: 8005 (internal), exposed via nginx at /chat
+
+FROM python:3.11-slim AS builder
+
+RUN apt update -y && apt install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+RUN pip install --upgrade pip setuptools wheel
+
+COPY dockerfiles/requirements-llm.txt /code/requirements.txt
+
+# Add SSE support for streaming
+RUN pip install --no-cache-dir -r /code/requirements.txt && \
+    pip install --no-cache-dir sse-starlette==2.1.0
+
+# =====================================
+# Runtime Stage
+# =====================================
+FROM python:3.11-slim AS runtime
+
+RUN apt update -y && apt install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+WORKDIR /code
+
+# Copy chat service app
+COPY monailabel/services/chat_app.py /code/chat_app.py
+
+# Copy chat module
+COPY monailabel/chat/ /code/monailabel/chat/
+RUN echo "" > /code/monailabel/__init__.py
+
+# Copy LLM client (used by orchestrator)
+COPY monailabel/llm/ /code/monailabel/llm/
+
+# Copy MCP tools (used by chat orchestrator)
+COPY monailabel/mcp/ /code/monailabel/mcp/
+
+ENV PYTHONPATH=/code:$PYTHONPATH
+ENV SERVICE_NAME=chat
+ENV SERVICE_PORT=8005
+
+EXPOSE 8005
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8005/health || exit 1
+
+CMD ["uvicorn", "chat_app:app", "--host", "0.0.0.0", "--port", "8005"]

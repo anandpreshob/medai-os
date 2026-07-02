@@ -1,0 +1,316 @@
+# MedAI Radiotherapy Suite Configuration
+# Domain-specific workflow for RT structure contouring and RTSTRUCT export
+
+suite_id: radiotherapy
+suite_type: radiotherapy
+display_name: "Radiotherapy Planning Suite"
+description: "RT structure contouring, OAR segmentation, and RTSTRUCT export"
+version: "1.0.0"
+icon: "Radiation"
+
+# Default settings
+defaults:
+  layout: "threePlusOne"
+  window_level_presets:
+    - ct-soft-tissue
+    - ct-lung
+    - ct-bone
+    - ct-brain
+
+# Task definitions for this suite
+tasks:
+  # GTV (Gross Tumor Volume) - interactive segmentation
+  gtv:
+    task_id: gtv
+    display_name: "GTV (Gross Tumor Volume)"
+    primary_model: segmentation
+    model_params:
+      nninter: true
+    default_label_name: "GTV"
+    label_color: "#FF0000"
+    rt_type: "GTV"
+    priority: 1
+    interactive: true
+
+  # CTV (Clinical Target Volume) - typically manual or interactive
+  ctv:
+    task_id: ctv
+    display_name: "CTV (Clinical Target Volume)"
+    primary_model: segmentation
+    model_params:
+      nninter: true
+    default_label_name: "CTV"
+    label_color: "#FF6600"
+    rt_type: "CTV"
+    priority: 2
+    interactive: true
+
+  # PTV (Planning Target Volume) - typically manual or derived
+  ptv:
+    task_id: ptv
+    display_name: "PTV (Planning Target Volume)"
+    primary_model: segmentation
+    model_params:
+      nninter: true
+    default_label_name: "PTV"
+    label_color: "#FFCC00"
+    rt_type: "PTV"
+    priority: 3
+    interactive: true
+
+  # Head & Neck OARs
+  oar_head_neck:
+    task_id: oar_head_neck
+    display_name: "Head & Neck OARs"
+    primary_model: segmentation
+    model_params:
+      roi_subset:
+        - brain
+        - brainstem
+        - spinal_cord
+        - esophagus
+        - trachea
+        - thyroid_gland
+        - parotid_gland_left
+        - parotid_gland_right
+        - submandibular_gland_left
+        - submandibular_gland_right
+    default_label_name: "OAR"
+    rt_type: "ORGAN"
+    body_regions:
+      - head
+      - neck
+    priority: 10
+
+  # Thoracic OARs
+  oar_thorax:
+    task_id: oar_thorax
+    display_name: "Thoracic OARs"
+    primary_model: segmentation
+    model_params:
+      roi_subset:
+        - lung_upper_lobe_left
+        - lung_upper_lobe_right
+        - lung_lower_lobe_left
+        - lung_lower_lobe_right
+        - lung_middle_lobe_right
+        - heart
+        - heart_myocardium
+        - esophagus
+        - spinal_cord
+        - aorta
+        - trachea
+    default_label_name: "OAR"
+    rt_type: "ORGAN"
+    body_regions:
+      - chest
+      - thorax
+    priority: 11
+
+  # Abdominal OARs
+  oar_abdomen:
+    task_id: oar_abdomen
+    display_name: "Abdominal OARs"
+    primary_model: segmentation
+    model_params:
+      roi_subset:
+        - liver
+        - spleen
+        - kidney_left
+        - kidney_right
+        - stomach
+        - pancreas
+        - gallbladder
+        - adrenal_gland_left
+        - adrenal_gland_right
+        - spinal_cord
+        - duodenum
+        - small_bowel
+    default_label_name: "OAR"
+    rt_type: "ORGAN"
+    body_regions:
+      - abdomen
+    priority: 12
+
+  # Pelvic OARs
+  oar_pelvis:
+    task_id: oar_pelvis
+    display_name: "Pelvic OARs"
+    primary_model: segmentation
+    model_params:
+      roi_subset:
+        - urinary_bladder
+        - prostate
+        - femur_left
+        - femur_right
+        - colon
+        - rectum
+        - sacrum
+        - hip_left
+        - hip_right
+    default_label_name: "OAR"
+    rt_type: "ORGAN"
+    body_regions:
+      - pelvis
+    priority: 13
+
+  # All OARs (full body)
+  oar_full_body:
+    task_id: oar_full_body
+    display_name: "All OARs (Full Body)"
+    primary_model: segmentation
+    model_params:
+      # Uses all available labels from TotalSegmentator
+      roi_subset: null
+    default_label_name: "OAR"
+    rt_type: "ORGAN"
+    body_regions:
+      - any
+    priority: 20
+
+# TG-263 Structure Naming Convention
+structure_naming:
+  convention: "TG-263"
+  mappings:
+    # Brain structures
+    brain: "Brain"
+    brainstem: "Brainstem"
+
+    # Spinal
+    spinal_cord: "SpinalCord"
+
+    # Thoracic
+    lung_upper_lobe_left: "Lung_L_Upper"
+    lung_upper_lobe_right: "Lung_R_Upper"
+    lung_lower_lobe_left: "Lung_L_Lower"
+    lung_lower_lobe_right: "Lung_R_Lower"
+    lung_middle_lobe_right: "Lung_R_Middle"
+    heart: "Heart"
+    heart_myocardium: "Heart"
+    esophagus: "Esophagus"
+    trachea: "Trachea"
+    aorta: "Aorta"
+
+    # Abdominal
+    liver: "Liver"
+    spleen: "Spleen"
+    kidney_left: "Kidney_L"
+    kidney_right: "Kidney_R"
+    stomach: "Stomach"
+    pancreas: "Pancreas"
+    gallbladder: "Gallbladder"
+    adrenal_gland_left: "Adrenal_L"
+    adrenal_gland_right: "Adrenal_R"
+    duodenum: "Duodenum"
+    small_bowel: "SmallBowel"
+
+    # Pelvic
+    urinary_bladder: "Bladder"
+    prostate: "Prostate"
+    rectum: "Rectum"
+    colon: "Colon"
+    femur_left: "Femur_L"
+    femur_right: "Femur_R"
+    sacrum: "Sacrum"
+    hip_left: "Hip_L"
+    hip_right: "Hip_R"
+
+    # Head & Neck
+    parotid_gland_left: "Parotid_L"
+    parotid_gland_right: "Parotid_R"
+    submandibular_gland_left: "Submandibular_L"
+    submandibular_gland_right: "Submandibular_R"
+    thyroid_gland: "Thyroid"
+
+# RT Structure colors (DICOM RT convention)
+structure_colors:
+  GTV: "#FF0000"      # Red
+  CTV: "#FF6600"      # Orange
+  PTV: "#FFCC00"      # Yellow
+  ITV: "#FFFF00"      # Bright Yellow
+  Brain: "#FF69B4"    # Pink
+  Brainstem: "#9370DB" # Purple
+  SpinalCord: "#4169E1" # Blue
+  Lung_L: "#00CED1"   # Cyan
+  Lung_R: "#00CED1"   # Cyan
+  Heart: "#FF00FF"    # Magenta
+  Liver: "#8B4513"    # Brown
+  Kidney_L: "#228B22" # Green
+  Kidney_R: "#228B22" # Green
+  Bladder: "#FFD700"  # Gold
+  Rectum: "#FF7F50"   # Coral
+  Prostate: "#DDA0DD" # Plum
+  Femur_L: "#D2691E"  # Chocolate
+  Femur_R: "#D2691E"  # Chocolate
+  Esophagus: "#BC8F8F" # Rosy Brown
+  Stomach: "#F0E68C"  # Khaki
+  Pancreas: "#FFDAB9" # Peach Puff
+  Spleen: "#9932CC"   # Dark Orchid
+  Aorta: "#DC143C"    # Crimson
+
+# Analytics configuration
+analytics:
+  default_metrics:
+    - volumetrics
+    - structure_volumes
+
+  enabled_features:
+    - total_volume
+    - centroid
+    - bounding_box
+
+# Export configuration
+exports:
+  allowed_formats:
+    - rtstruct
+    - nifti
+    - mesh
+    - csv
+
+  default_format: rtstruct
+
+  rtstruct_options:
+    manufacturer: "MedAI"
+    station_name: "MedAI_Viewer"
+    software_version: "1.0.0"
+    structure_set_label: "MedAI_Structures"
+    simplify_contours: true
+    simplify_tolerance: 0.5  # mm
+
+# Model preferences (in order of priority)
+model_preferences:
+  - segmentation
+  - nninteractive
+
+# Detection hints for auto-selection
+detection_hints:
+  modalities:
+    - CT
+    - RTPLAN
+    - RTDOSE
+    - RTSTRUCT
+    - MR
+  body_parts:
+    - HEAD
+    - BRAIN
+    - CHEST
+    - PELVIS
+    - ABDOMEN
+    - NECK
+  description_keywords:
+    - rt
+    - radiation
+    - planning
+    - therapy
+    - contour
+    - oar
+    - gtv
+    - ctv
+    - ptv
+    - structure
+  protocol_keywords:
+    - treatment
+    - plan
+    - simulation
+    - rt sim
+    - ct sim

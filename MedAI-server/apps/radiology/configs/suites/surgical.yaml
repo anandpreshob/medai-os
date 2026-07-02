@@ -1,0 +1,343 @@
+# MedAI Surgical Planning Suite Configuration
+#
+# Provides advanced 3D visualization and surgical planning tools
+# for surgeons, radiologists, and surgical navigation teams.
+
+suite_id: surgical
+suite_type: surgical
+display_name: "Surgical Planning Suite"
+version: "1.0.0"
+description: "3D visualization, surgical corridors, and 3D printing export"
+
+# === Segmentation Tasks ===
+tasks:
+  full_body_anatomy:
+    task_id: full_body_anatomy
+    display_name: "Full Body Anatomy"
+    description: "Segment all major anatomical structures"
+    primary_model: totalsegmentator
+    fallback_model: smartedit
+    model_params:
+      fast: false  # Use full resolution for surgical planning
+    default_label_name: "Anatomy"
+    body_regions: ["any"]
+    modalities: ["CT"]
+
+  bone_segmentation:
+    task_id: bone_segmentation
+    display_name: "Bone Structures"
+    description: "Segment skeletal structures for orthopedic planning"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - vertebrae_L1
+        - vertebrae_L2
+        - vertebrae_L3
+        - vertebrae_L4
+        - vertebrae_L5
+        - vertebrae_T1
+        - vertebrae_T2
+        - vertebrae_T3
+        - vertebrae_T4
+        - vertebrae_T5
+        - vertebrae_T6
+        - vertebrae_T7
+        - vertebrae_T8
+        - vertebrae_T9
+        - vertebrae_T10
+        - vertebrae_T11
+        - vertebrae_T12
+        - vertebrae_C1
+        - vertebrae_C2
+        - vertebrae_C3
+        - vertebrae_C4
+        - vertebrae_C5
+        - vertebrae_C6
+        - vertebrae_C7
+        - sacrum
+        - hip_left
+        - hip_right
+        - femur_left
+        - femur_right
+        - rib_left_1
+        - rib_right_1
+        - sternum
+        - clavicula_left
+        - clavicula_right
+        - scapula_left
+        - scapula_right
+        - humerus_left
+        - humerus_right
+    default_label_name: "Bone"
+    body_regions: ["spine", "pelvis", "extremity"]
+    modalities: ["CT"]
+
+  spine_segmentation:
+    task_id: spine_segmentation
+    display_name: "Spine Anatomy"
+    description: "Detailed spine segmentation for spine surgery"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - vertebrae_L1
+        - vertebrae_L2
+        - vertebrae_L3
+        - vertebrae_L4
+        - vertebrae_L5
+        - vertebrae_T1
+        - vertebrae_T2
+        - vertebrae_T3
+        - vertebrae_T4
+        - vertebrae_T5
+        - vertebrae_T6
+        - vertebrae_T7
+        - vertebrae_T8
+        - vertebrae_T9
+        - vertebrae_T10
+        - vertebrae_T11
+        - vertebrae_T12
+        - vertebrae_C1
+        - vertebrae_C2
+        - vertebrae_C3
+        - vertebrae_C4
+        - vertebrae_C5
+        - vertebrae_C6
+        - vertebrae_C7
+        - sacrum
+        - spinal_cord
+    default_label_name: "Spine"
+    body_regions: ["spine"]
+    modalities: ["CT", "MR"]
+
+  vessel_segmentation:
+    task_id: vessel_segmentation
+    display_name: "Blood Vessels"
+    description: "Segment major blood vessels for vascular planning"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - aorta
+        - inferior_vena_cava
+        - portal_vein_and_splenic_vein
+        - hepatic_vein
+        - pulmonary_artery
+        - iliac_artery_left
+        - iliac_artery_right
+        - iliac_vena_left
+        - iliac_vena_right
+        - brachiocephalic_trunk
+        - subclavian_artery_left
+        - subclavian_artery_right
+        - common_carotid_artery_left
+        - common_carotid_artery_right
+    default_label_name: "Vessel"
+    body_regions: ["chest", "abdomen", "pelvis"]
+    modalities: ["CT"]
+
+  liver_segments:
+    task_id: liver_segments
+    display_name: "Liver Segments"
+    description: "Segment liver with Couinaud segments for hepatectomy planning"
+    primary_model: totalsegmentator
+    fallback_model: biomedparse
+    model_params:
+      roi_subset:
+        - liver
+        - hepatic_vein
+        - portal_vein_and_splenic_vein
+    default_label_name: "Liver"
+    body_regions: ["abdomen", "liver"]
+    modalities: ["CT"]
+
+  kidney_anatomy:
+    task_id: kidney_anatomy
+    display_name: "Kidney Anatomy"
+    description: "Segment kidneys and renal vessels for nephrectomy planning"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - kidney_left
+        - kidney_right
+        - adrenal_gland_left
+        - adrenal_gland_right
+        - urinary_bladder
+        - inferior_vena_cava
+        - aorta
+    default_label_name: "Kidney"
+    body_regions: ["abdomen"]
+    modalities: ["CT"]
+
+  tumor_resection:
+    task_id: tumor_resection
+    display_name: "Tumor (Interactive)"
+    description: "Interactive tumor segmentation for resection planning"
+    primary_model: smartedit
+    model_params:
+      nninter: "sam3"
+    default_label_name: "Tumor"
+    label_color: "#FF0000"
+    body_regions: ["any"]
+
+  interactive_anatomy:
+    task_id: interactive_anatomy
+    display_name: "Interactive Anatomy"
+    description: "Click-to-segment any anatomical structure"
+    primary_model: smartedit
+    model_params:
+      nninter: "sam3"
+    default_label_name: "Anatomy"
+    body_regions: ["any"]
+
+# === Structure Naming ===
+structure_naming:
+  convention: "TotalSegmentator"
+  # Using TotalSegmentator default naming
+
+# === Structure Colors (for 3D visualization) ===
+structure_colors:
+  # Bones - white/gray tones
+  Bone: "#F5F5DC"
+  Vertebrae: "#F0E68C"
+  Sacrum: "#DAA520"
+  Hip: "#D2B48C"
+  Femur: "#DEB887"
+
+  # Vessels - red/blue
+  Aorta: "#FF4444"
+  Vena_Cava: "#4444FF"
+  Portal_Vein: "#6666FF"
+  Hepatic_Vein: "#8888FF"
+  Artery: "#FF6666"
+  Vein: "#6666FF"
+
+  # Organs
+  Liver: "#CD853F"
+  Kidney: "#8B4513"
+  Spleen: "#800020"
+  Pancreas: "#FFD39B"
+
+  # Spine
+  Spinal_Cord: "#FFD700"
+
+  # Tumor
+  Tumor: "#FF0000"
+
+# === Analytics Configuration ===
+default_analytics:
+  - volumetrics
+  - surface_area
+  - distance
+  - angle
+
+analytics_config:
+  volumetrics:
+    enabled: true
+    unit: "mL"
+  surface_area:
+    enabled: true
+    unit: "cm²"
+    description: "Surface area for resection planning"
+  distance:
+    enabled: true
+    unit: "mm"
+    description: "Distance measurements between structures"
+  angle:
+    enabled: true
+    unit: "degrees"
+    description: "Angle measurements for surgical approach"
+  resection_volume:
+    enabled: true
+    unit: "mL"
+    description: "Estimated volume to be resected"
+
+# === Export Configuration ===
+export_formats:
+  - nifti
+  - mesh
+  - stl
+  - obj
+  - glb
+  - ply
+
+mesh_export_config:
+  stl:
+    binary: true
+    description: "Standard format for 3D printing"
+  obj:
+    include_materials: true
+    description: "Universal 3D format with materials"
+  glb:
+    compress: true
+    description: "Web-ready format with colors"
+  ply:
+    binary: true
+    include_colors: true
+    description: "Point cloud format with vertex colors"
+
+# === 3D Rendering Presets ===
+rendering_presets:
+  bone_ct:
+    name: "Bone (CT)"
+    description: "Bone visualization for orthopedic planning"
+    window_width: 2000
+    window_center: 300
+    opacity_function: "bone"
+
+  soft_tissue:
+    name: "Soft Tissue"
+    description: "General soft tissue visualization"
+    window_width: 400
+    window_center: 40
+    opacity_function: "soft"
+
+  vascular:
+    name: "Vascular (CTA)"
+    description: "Blood vessel visualization"
+    window_width: 600
+    window_center: 300
+    opacity_function: "vessel"
+
+  muscle:
+    name: "Muscle"
+    description: "Muscle and soft tissue"
+    window_width: 400
+    window_center: 50
+    opacity_function: "muscle"
+
+# === Detection Hints (for auto-detection) ===
+detection_hints:
+  modalities:
+    - CT
+    - MR
+  body_parts:
+    - SPINE
+    - PELVIS
+    - EXTREMITY
+    - LIVER
+    - KIDNEY
+    - ABDOMEN
+  description_keywords:
+    - surgical
+    - planning
+    - pre-op
+    - preoperative
+    - 3d
+    - reconstruction
+    - resection
+    - approach
+    - navigation
+    - orthopedic
+    - spine
+    - hepatectomy
+    - nephrectomy
+    - arthroplasty
+    - fusion
+    - fixation
+  protocol_keywords:
+    - surgical
+    - planning
+    - pre-op
+    - navigation
+    - 3d recon
+    - cta
+    - angio

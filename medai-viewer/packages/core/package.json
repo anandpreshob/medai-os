@@ -1,0 +1,28 @@
+{
+  "name": "@medai/core",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "pako": "^2.1.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/pako": "^2.0.4",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0",
+    "vite-plugin-dts": "^3.9.0",
+    "vitest": "^1.6.0"
+  }
+}

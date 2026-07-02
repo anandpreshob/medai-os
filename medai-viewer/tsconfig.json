@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@medai/core": ["packages/core/src"],
+      "@medai/ui": ["packages/ui/src"],
+      "@medai/itk-loader": ["packages/itk-loader/src"]
+    }
+  }
+}

@@ -1,0 +1,88 @@
+# MedAI MedGemma Service
+# Chest X-ray detection and analysis with MedGemma 4B multimodal model
+# GPU Required: Yes (shared with inference, uses 4-bit quantization)
+# Port: 8004
+# Models: google/medgemma-4b-it (vision-language)
+
+FROM nvidia/cuda:12.1.1-devel-ubuntu22.04 AS builder
+
+# Install system dependencies
+RUN apt update -y && apt install -y \
+    build-essential \
+    python3-pip \
+    python3-dev \
+    python-is-python3 \
+    wget \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+# Install Python packages
+RUN pip install --upgrade pip==24.0 setuptools==69.5.1 wheel==0.43.0
+
+# Copy requirements
+COPY dockerfiles/requirements-medgemma.txt /code/requirements.txt
+
+# Install requirements
+RUN pip install --no-cache-dir -r /code/requirements.txt
+
+# Note: MedGemma model will be downloaded at runtime on first use
+# Pre-downloading is skipped due to gated model requirements (needs HF_TOKEN)
+# The model (~4GB with 4-bit) is cached in /root/.cache/huggingface after first inference
+
+# =====================================
+# Runtime Stage
+# =====================================
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04 AS runtime
+
+# Install runtime dependencies (including OpenCV requirements)
+RUN apt update -y && apt install -y \
+    python3 \
+    python3-pip \
+    libsm6 \
+    libxext6 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Create HuggingFace cache directory (model downloaded at runtime)
+RUN mkdir -p /root/.cache/huggingface
+
+WORKDIR /code
+
+# Create directories
+RUN mkdir -p /code/temp /code/uploads
+
+# Set library path
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/usr/local/nvidia/lib64"
+
+# Copy MedGemma service application
+COPY monailabel/services/medgemma_app.py /code/medgemma_app.py
+
+# Set environment variables
+ENV CUDA_VISIBLE_DEVICES=0
+ENV PYTHONPATH=/code:$PYTHONPATH
+ENV HF_HOME=/root/.cache/huggingface
+
+# Service identification
+ENV SERVICE_NAME=medgemma
+ENV SERVICE_PORT=8004
+
+# Model configuration
+ENV LOAD_IN_4BIT=true
+ENV MODEL_IDLE_TIMEOUT=300
+
+EXPOSE 8004
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
+    CMD curl -f http://localhost:8004/health || exit 1
+
+# Start the MedGemma service
+CMD ["uvicorn", "medgemma_app:app", "--host", "0.0.0.0", "--port", "8004"]

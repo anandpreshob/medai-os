@@ -1,0 +1,100 @@
+{
+  "Name": "MedAI-PACS",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "IndexDirectory": "/var/lib/orthanc/db",
+  "StorageCompression": false,
+  "MaximumStorageSize": 0,
+  "MaximumPatientCount": 0,
+  "LuaScripts": [],
+  "Plugins": ["/usr/share/orthanc/plugins", "/usr/local/share/orthanc/plugins"],
+  "ConcurrentJobs": 4,
+
+  "HttpServerEnabled": true,
+  "HttpPort": 8042,
+  "HttpDescribeErrors": true,
+  "HttpCompressionEnabled": true,
+  "HttpThreadsCount": 50,
+
+  "DicomServerEnabled": true,
+  "DicomAet": "MEDAI",
+  "DicomCheckCalledAet": false,
+  "DicomPort": 4242,
+  "DicomScpTimeout": 30,
+
+  "DefaultEncoding": "Latin1",
+  "DeflatedTransferSyntaxAccepted": true,
+  "JpegTransferSyntaxAccepted": true,
+  "Jpeg2000TransferSyntaxAccepted": true,
+  "JpegLosslessTransferSyntaxAccepted": true,
+  "JpipTransferSyntaxAccepted": true,
+  "Mpeg2TransferSyntaxAccepted": true,
+  "RleTransferSyntaxAccepted": true,
+  "UnknownSopClassAccepted": false,
+
+  "RemoteAccessAllowed": true,
+  "SslEnabled": false,
+
+  "AuthenticationEnabled": false,
+  "RegisteredUsers": {
+    "orthanc": "changeme"
+  },
+
+  "DicomModalities": {},
+  "DicomModalitiesInDatabase": false,
+  "DicomAlwaysAllowEcho": true,
+  "DicomAlwaysAllowStore": true,
+  "DicomCheckModalityHost": false,
+  "DicomScuTimeout": 30,
+
+  "OrthancPeers": {},
+  "OrthancPeersInDatabase": false,
+
+  "HttpProxy": "",
+  "HttpTimeout": 60,
+  "HttpVerbose": false,
+  "HttpsVerifyPeers": true,
+  "HttpsCACertificates": "",
+
+  "UserMetadata": {},
+  "UserContentType": {},
+  "StableAge": 60,
+  "StrictAetComparison": false,
+  "StoreMD5ForAttachments": true,
+
+  "LimitFindResults": 0,
+  "LimitFindInstances": 0,
+  "LimitJobs": 10,
+  "LogExportedResources": false,
+
+  "KeepAlive": true,
+  "TcpNoDelay": true,
+  "StoreDicom": true,
+  "DicomAssociationCloseDelay": 5,
+  "QueryRetrieveSize": 100,
+  "CaseSensitivePN": false,
+  "LoadPrivateDictionary": true,
+
+  "Dictionary": {},
+  "SynchronousCMove": true,
+  "JobsHistorySize": 10,
+  "SaveJobs": true,
+  "OverwriteInstances": true,
+  "MediaArchiveSize": 1,
+  "StorageAccessOnFind": "Always",
+  "MetricsEnabled": true,
+
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/",
+    "EnableWado": true,
+    "WadoRoot": "/wado",
+    "Host": "0.0.0.0",
+    "Ssl": false,
+    "StowMaxInstances": 10,
+    "StowMaxSize": 100,
+    "QidoCaseSensitive": false,
+    "MetadataWorkerThreadsCount": 4,
+    "StudiesMetadata": "Full",
+    "SeriesMetadata": "Full"
+  }
+}

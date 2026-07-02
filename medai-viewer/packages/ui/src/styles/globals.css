@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Default dark theme values */
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-tertiary: #1a1a24;
+    --bg-hover: #22222e;
+    --accent-primary: #6366f1;
+    --accent-secondary: #8b5cf6;
+    --accent-success: #10b981;
+    --accent-warning: #f59e0b;
+    --accent-error: #ef4444;
+    --accent-info: #3b82f6;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border-subtle: #1e1e2e;
+    --border-default: #2e2e3e;
+    --seg-1: #ef4444;
+    --seg-2: #3b82f6;
+    --seg-3: #10b981;
+    --seg-4: #f59e0b;
+    --seg-5: #8b5cf6;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background-primary text-text-primary;
+    font-family: 'Inter', sans-serif;
+  }
+}

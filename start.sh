@@ -1,0 +1,1 @@
+docker compose -f ./MedAI-server/docker-compose.yml up --build

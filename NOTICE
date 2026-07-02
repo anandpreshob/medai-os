@@ -1,0 +1,42 @@
+MedAI Imaging Operating System (medai-os)
+Copyright 2026 medai-os Contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes and integrates third-party software under their own
+licenses. The following components are vendored in this repository under
+subdirectories that carry their own LICENSE files where applicable:
+
+--------------------------------------------------------------------------------
+Apache License 2.0 components
+--------------------------------------------------------------------------------
+- MONAI Label (Project MONAI) — MedAI-server/monailabel/
+  A modified fork. Original: https://github.com/Project-MONAI/MONAILabel
+  Licensed under Apache-2.0 (see MedAI-server/monailabel/LICENSE).
+
+- BiomedParse (Microsoft) — MedAI-server/biomedparse/
+  Original: https://github.com/microsoft/BiomedParse
+  Licensed under Apache-2.0 (see MedAI-server/biomedparse/LICENSE).
+
+- Segment Anything 2 (SAM 2, Meta) — MedAI-server/sam2/
+  Licensed under Apache-2.0, with a BSD-licensed component
+  (see MedAI-server/sam2/LICENSE and MedAI-server/sam2/LICENSE_cctorch).
+
+- Cornerstone3D — used by the viewer (MIT).
+- VTK.js (Kitware) — used by the viewer (BSD-3-Clause).
+- itk-wasm — used by the viewer (Apache-2.0).
+
+--------------------------------------------------------------------------------
+Meta "SAM License" component (NOT Apache-2.0)
+--------------------------------------------------------------------------------
+- SAM 3 (Meta) — MedAI-server/sam3/ and MedAI-server/monailabel/sam3/
+  Distributed under Meta's custom "SAM License", NOT the Apache License.
+  The full license text is at MedAI-server/sam3/LICENSE and governs use,
+  reproduction, distribution, and modification of that code. Your use of the
+  SAM 3 materials is subject to those terms, including its acceptable-use and
+  trade-control provisions. The medical-imaging additions authored by this
+  project (e.g. load_medical_slices) are applied on top of the SAM 3 sources.
+
+Downloaded model weights (SAM2/MedSAM2/TotalSegmentator/nnUNet/MedGemma, etc.)
+are fetched at build/run time and are governed by their own licenses and
+acceptable-use policies from their respective providers.

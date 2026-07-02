@@ -1,0 +1,35 @@
+# MedAI MedGemma Wrapper Service
+# Lightweight FastAPI wrapper that calls vLLM for inference
+# CPU-only (no GPU needed - vLLM handles model inference)
+# Port: 8005 (internal)
+
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+# Install Python packages
+COPY dockerfiles/requirements-vlm.txt /code/requirements.txt
+RUN pip install --no-cache-dir -r /code/requirements.txt
+
+# Copy wrapper service
+COPY monailabel/services/medgemma_app.py /code/app.py
+
+# Environment variables
+ENV VLLM_SERVICE_URL=http://medgemma-vllm:8000
+ENV MODEL_NAME=medgemma
+ENV SERVICE_NAME=medgemma-wrapper
+ENV SERVICE_PORT=8005
+
+EXPOSE 8005
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8005/health || exit 1
+
+# Start the wrapper service
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8005"]

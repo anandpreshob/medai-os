@@ -1,0 +1,18 @@
+# gitleaks configuration for medai-os
+#
+# Extends the default ruleset and allowlists known false positives in
+# vendored upstream code. Used by CI and by scripts/prepare-release.sh.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+Vendored Meta SAM 3 upstream training/eval configs. These YAMLs use dataset
+key names (e.g. `dict_key: silver_bdd100k`) that the generic-api-key rule
+misreads as high-entropy secrets. They are upstream config identifiers, not
+credentials.
+"""
+paths = [
+  '''.*sam3/.*train/configs/.*\.yaml$''',
+]

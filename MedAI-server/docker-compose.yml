@@ -1,0 +1,324 @@
+# MedAI Server Docker Compose - Profiled Architecture
+#
+# Tiers (compose profiles):
+#   (default)        Orthanc PACS only - pairs with the basic viewer
+#   segmentation     + MONAI Label server (GPU) - single-container AI segmentation
+#   ai               + Full microservices stack (GPU): nginx gateway, inference,
+#                      MedGemma vision-language, LLM report/triage, chat
+#
+# NOTE: `segmentation` and `ai` are ALTERNATIVES - both bind port 8002
+#       (the single MONAI Label container vs. the nginx gateway).
+#       Chat/report/triage inside `ai` additionally require GEMINI_API_KEY in .env.
+#
+# Usage:
+#   docker compose up -d                          # basic: Orthanc only
+#   docker compose --profile segmentation up -d   # basic + MONAI Label
+#   docker compose --profile ai up -d             # full AI stack
+#
+# Frontend pairing (medai-viewer):
+#   basic:        VITE_FEATURES=            (local files + PACS viewing)
+#   segmentation: VITE_FEATURES=monai-segmentation,analytics
+#   ai:           VITE_FEATURES=all         (or any subset)
+
+networks:
+  medai-network:
+    driver: bridge
+    name: medai-network
+
+volumes:
+  orthanc-db:
+    name: medai-orthanc-db
+
+services:
+  # ============================================================================
+  # Orthanc PACS Server (always on - the basic tier)
+  # ============================================================================
+  # Provides DICOMweb API for study upload, browsing, and retrieval.
+  # SECURITY: authentication is DISABLED by default for local development.
+  # Before exposing Orthanc beyond localhost, set AuthenticationEnabled=true
+  # and change the placeholder users in orthanc/orthanc.json.
+  orthanc:
+    image: jodogne/orthanc-plugins:latest
+    container_name: medai-orthanc
+    hostname: orthanc
+    restart: unless-stopped
+    networks:
+      - medai-network
+    ports:
+      - "4242:4242"   # DICOM port
+      - "8042:8042"   # HTTP REST API / DICOMweb
+    volumes:
+      - ./orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - orthanc-db:/var/lib/orthanc/db
+    environment:
+      - ORTHANC__NAME=MedAI-PACS
+      - ORTHANC__DICOM_AET=MEDAI
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8042/system || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================================
+  # MONAI Label AI Server (profile: segmentation)
+  # ============================================================================
+  # Single-container AI segmentation (TotalSegmentator, nnInteractive, SAM2, ...).
+  # Requires an NVIDIA GPU. Model weights are downloaded on first start into
+  # ./checkpoints (gitignored).
+  monai_label:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    image: medai/monai-label:latest
+    container_name: medai-monai-label
+    profiles: ["segmentation"]
+    runtime: nvidia
+    restart: on-failure
+    networks:
+      - medai-network
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./predictions:/code/predictions
+      - ./studies:/code/studies
+      - ./checkpoints:/code/checkpoints
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    shm_size: '10gb'
+    depends_on:
+      - orthanc
+
+  # ============================================================================
+  # API Gateway (profile: ai)
+  # ============================================================================
+  # Routes requests to the microservices. External entry point on port 8002.
+  nginx:
+    image: nginx:alpine
+    container_name: medai-gateway
+    hostname: gateway
+    profiles: ["ai"]
+    restart: unless-stopped
+    networks:
+      - medai-network
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      inference:
+        condition: service_started
+      llm:
+        condition: service_started
+      chat:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================================
+  # Core MONAI Inference Service (profile: ai)
+  # ============================================================================
+  # Medical image segmentation with SAM2, BiomedParse, TotalSegmentator.
+  # GPU required.
+  inference:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/Dockerfile.inference
+    image: medai/inference:latest
+    container_name: medai-inference
+    hostname: inference
+    profiles: ["ai"]
+    runtime: nvidia
+    restart: on-failure:3
+    networks:
+      - medai-network
+    ports:
+      - "8001:8001"  # Exposed for debugging, nginx routes here
+    volumes:
+      - ./predictions:/code/predictions
+      - ./studies:/code/studies
+      - ./checkpoints:/code/checkpoints
+      - ${MODEL_CACHE_DIR:-./model-cache}:/root/.cache
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - SERVICE_NAME=inference
+      - SERVICE_PORT=8001
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    shm_size: '10gb'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/monai/info"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # ============================================================================
+  # MedGemma vLLM Model Server (profile: ai, internal)
+  # ============================================================================
+  # Runs MedGemma 4B via vLLM. GPU required (~8GB VRAM with bfloat16).
+  # Download the model into ${MODELS_DIR}/medgemma-4b-it first (see README).
+  medgemma-vllm:
+    image: vllm/vllm-openai:v0.8.5
+    container_name: medai-medgemma-vllm
+    hostname: medgemma-vllm
+    profiles: ["ai"]
+    runtime: nvidia
+    restart: on-failure:3
+    networks:
+      - medai-network
+    # No external port exposure - internal only
+    volumes:
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${MODEL_CACHE_DIR:-./model-cache}:/root/.cache/huggingface
+    ipc: host  # Required for vLLM shared memory
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - HF_HOME=/root/.cache/huggingface
+      - HF_TOKEN=${HF_TOKEN:-}
+      - VLLM_USE_FLASHINFER_SAMPLER=0  # Disable flashinfer for stability
+    command: >
+      --model /models/medgemma-4b-it
+      --served-model-name medgemma
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 4096
+      --max-num-seqs 4
+      --gpu-memory-utilization 0.85
+      --trust-remote-code
+      --dtype bfloat16
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 300s  # Model loading takes time at startup
+
+  # ============================================================================
+  # MedGemma Wrapper Service (profile: ai)
+  # ============================================================================
+  # Provides /detect and /describe endpoints backed by the vLLM server. CPU-only.
+  medgemma:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/Dockerfile.vlm
+    image: medai/medgemma-wrapper:latest
+    container_name: medai-medgemma
+    hostname: vlm  # Keep hostname for nginx compatibility
+    profiles: ["ai"]
+    restart: on-failure:3
+    networks:
+      - medai-network
+    ports:
+      - "8004:8005"
+    environment:
+      - VLLM_SERVICE_URL=http://medgemma-vllm:8000
+      - MODEL_NAME=medgemma
+    depends_on:
+      medgemma-vllm:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================================
+  # LLM Service - Report Generation & Triage (profile: ai)
+  # ============================================================================
+  # LangChain agents using cloud LLM APIs. CPU-only. Requires GEMINI_API_KEY
+  # (or OPENAI_API_KEY) in .env to serve requests.
+  llm:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/Dockerfile.llm
+    image: medai/llm:latest
+    container_name: medai-llm
+    hostname: llm
+    profiles: ["ai"]
+    restart: on-failure:3
+    networks:
+      - medai-network
+    ports:
+      - "8003:8003"  # Exposed for debugging, nginx routes here
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - SERVICE_NAME=llm
+      - SERVICE_PORT=8003
+      - INFERENCE_SERVICE_URL=http://inference:8001
+      - VLM_SERVICE_URL=http://vlm:8005
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ============================================================================
+  # Chat Service - Radiology Q&A (profile: ai)
+  # ============================================================================
+  # LangGraph chat orchestration for clinical decision support. CPU-only.
+  # Requires GEMINI_API_KEY in .env to serve requests.
+  chat:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/Dockerfile.chat
+    image: medai/chat:latest
+    container_name: medai-chat
+    hostname: chat
+    profiles: ["ai"]
+    restart: on-failure:3
+    networks:
+      - medai-network
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - SERVICE_NAME=chat
+      - SERVICE_PORT=8005
+      - INFERENCE_SERVICE_URL=http://inference:8001
+      - VLM_SERVICE_URL=http://vlm:8005
+      - VLLM_SERVICE_URL=http://medgemma-vllm:8000
+      - MODEL_NAME=medgemma
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

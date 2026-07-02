@@ -1,0 +1,27 @@
+# Model checkpoints (too large for git)
+checkpoints/*.pt
+checkpoints/*.pth
+checkpoints/nnInteractive_v1.0/
+checkpoints/nnunet/
+checkpoints/MedSAM2_latest.pt
+checkpoints/sam2.1_hiera_tiny.pt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.*.pyc
+
+# macOS
+.DS_Store
+._*
+
+# Studies data
+studies/
+
+# Predictions output
+predictions/
+
+# Temp files
+*.tmp
+*.log

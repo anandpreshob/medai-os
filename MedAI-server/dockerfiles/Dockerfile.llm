@@ -1,0 +1,69 @@
+# MedAI LLM Service
+# Report generation and worklist triaging with LangChain
+# GPU Required: NO (uses cloud LLM APIs)
+# Port: 8003
+# Agents: BreastAnalysisAgent, ChestXrayAnalysisAgent, TriagingAgent
+
+FROM python:3.11-slim AS builder
+
+# Install build dependencies
+RUN apt update -y && apt install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+# Install Python packages
+RUN pip install --upgrade pip setuptools wheel
+
+# Copy requirements
+COPY dockerfiles/requirements-llm.txt /code/requirements.txt
+
+# Install requirements
+RUN pip install --no-cache-dir -r /code/requirements.txt
+
+# =====================================
+# Runtime Stage
+# =====================================
+FROM python:3.11-slim AS runtime
+
+# Install runtime dependencies
+RUN apt update -y && apt install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+WORKDIR /code
+
+# Copy LLM service application
+COPY monailabel/services/llm_app.py /code/llm_app.py
+
+# Copy agent code
+COPY monailabel/agents/ /code/agents/
+
+# Copy LLM client
+COPY monailabel/llm/ /code/llm/
+
+# Set environment variables
+ENV PYTHONPATH=/code:$PYTHONPATH
+
+# Service identification
+ENV SERVICE_NAME=llm
+ENV SERVICE_PORT=8003
+
+# Internal service URLs for cross-service communication
+ENV INFERENCE_SERVICE_URL=http://inference:8001
+ENV VLM_SERVICE_URL=http://vlm:8002
+
+EXPOSE 8003
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8003/health || exit 1
+
+# Start the LLM service
+CMD ["uvicorn", "llm_app:app", "--host", "0.0.0.0", "--port", "8003"]

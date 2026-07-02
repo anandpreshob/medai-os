@@ -1,0 +1,327 @@
+# MedAI Cardiology Suite Configuration
+#
+# Provides AI-assisted cardiac imaging analysis including chamber
+# segmentation, ejection fraction, calcium scoring, and coronary
+# artery visualization for cardiologists and radiologists.
+
+suite_id: cardiology
+suite_type: cardiology
+display_name: "Cardiology Suite"
+version: "1.0.0"
+description: "Cardiac function analysis, coronary imaging, and calcium scoring"
+
+# === Segmentation Tasks ===
+tasks:
+  cardiac_chambers:
+    task_id: cardiac_chambers
+    display_name: "Cardiac Chambers"
+    description: "Segment all four cardiac chambers (LV, RV, LA, RA)"
+    primary_model: totalsegmentator
+    fallback_model: smartedit
+    model_params:
+      roi_subset:
+        - heart_myocardium
+        - heart_atrium_left
+        - heart_atrium_right
+        - heart_ventricle_left
+        - heart_ventricle_right
+    default_label_name: "Heart"
+    body_regions: ["chest", "heart"]
+    modalities: ["CT", "MR"]
+
+  myocardium:
+    task_id: myocardium
+    display_name: "Myocardium"
+    description: "Segment the myocardial muscle"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - heart_myocardium
+    default_label_name: "Myocardium"
+    label_color: "#FF69B4"
+    body_regions: ["chest", "heart"]
+    modalities: ["CT", "MR"]
+
+  left_ventricle:
+    task_id: left_ventricle
+    display_name: "Left Ventricle"
+    description: "Segment the left ventricle"
+    primary_model: biomedparse
+    fallback_model: smartedit
+    model_params:
+      text_prompt: "left ventricle"
+    default_label_name: "LV"
+    label_color: "#FF4444"
+    body_regions: ["heart"]
+    modalities: ["CT", "MR"]
+
+  right_ventricle:
+    task_id: right_ventricle
+    display_name: "Right Ventricle"
+    description: "Segment the right ventricle"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "right ventricle"
+    default_label_name: "RV"
+    label_color: "#4444FF"
+    body_regions: ["heart"]
+    modalities: ["CT", "MR"]
+
+  left_atrium:
+    task_id: left_atrium
+    display_name: "Left Atrium"
+    description: "Segment the left atrium"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "left atrium"
+    default_label_name: "LA"
+    label_color: "#FF8800"
+    body_regions: ["heart"]
+    modalities: ["CT", "MR"]
+
+  right_atrium:
+    task_id: right_atrium
+    display_name: "Right Atrium"
+    description: "Segment the right atrium"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "right atrium"
+    default_label_name: "RA"
+    label_color: "#8844FF"
+    body_regions: ["heart"]
+    modalities: ["CT", "MR"]
+
+  aorta:
+    task_id: aorta
+    display_name: "Aorta"
+    description: "Segment the thoracic aorta"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - aorta
+    default_label_name: "Aorta"
+    label_color: "#FF0000"
+    body_regions: ["chest"]
+    modalities: ["CT"]
+
+  coronary_arteries:
+    task_id: coronary_arteries
+    display_name: "Coronary Arteries"
+    description: "Segment coronary arteries for CTA analysis"
+    primary_model: biomedparse
+    fallback_model: smartedit
+    model_params:
+      text_prompt: "coronary artery"
+    default_label_name: "Coronary"
+    label_color: "#FF6666"
+    body_regions: ["heart"]
+    modalities: ["CT"]
+
+  pericardium:
+    task_id: pericardium
+    display_name: "Pericardium"
+    description: "Segment the pericardium"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "pericardium"
+    default_label_name: "Pericardium"
+    label_color: "#FFCC00"
+    body_regions: ["chest", "heart"]
+    modalities: ["CT", "MR"]
+
+  pulmonary_vessels:
+    task_id: pulmonary_vessels
+    display_name: "Pulmonary Vessels"
+    description: "Segment pulmonary artery and veins"
+    primary_model: totalsegmentator
+    model_params:
+      roi_subset:
+        - pulmonary_artery
+    default_label_name: "Pulmonary"
+    label_color: "#4488FF"
+    body_regions: ["chest"]
+    modalities: ["CT"]
+
+  calcium_detection:
+    task_id: calcium_detection
+    display_name: "Coronary Calcium"
+    description: "Detect coronary artery calcifications"
+    primary_model: biomedparse
+    model_params:
+      text_prompt: "coronary artery calcium"
+    default_label_name: "Calcium"
+    label_color: "#FFFFFF"
+    body_regions: ["heart"]
+    modalities: ["CT"]
+
+  interactive_cardiac:
+    task_id: interactive_cardiac
+    display_name: "Interactive Cardiac"
+    description: "Click-to-segment any cardiac structure"
+    primary_model: smartedit
+    model_params:
+      nninter: "sam3"
+    default_label_name: "Cardiac_Structure"
+    body_regions: ["heart"]
+
+# === Structure Naming ===
+structure_naming:
+  convention: "Custom"
+  mappings:
+    heart_myocardium: "Myocardium"
+    heart_atrium_left: "LA"
+    heart_atrium_right: "RA"
+    heart_ventricle_left: "LV"
+    heart_ventricle_right: "RV"
+    aorta: "Aorta"
+    pulmonary_artery: "Pulmonary_Artery"
+
+# === Structure Colors (for visualization) ===
+structure_colors:
+  Myocardium: "#FF69B4"
+  LV: "#FF4444"
+  RV: "#4444FF"
+  LA: "#FF8800"
+  RA: "#8844FF"
+  Aorta: "#FF0000"
+  Pulmonary_Artery: "#4488FF"
+  Coronary: "#FF6666"
+  Pericardium: "#FFCC00"
+  Calcium: "#FFFFFF"
+
+# === Analytics Configuration ===
+default_analytics:
+  - volumetrics
+  - chamber_volumes
+  - myocardial_mass
+  - ejection_fraction
+  - calcium_score
+
+analytics_config:
+  volumetrics:
+    enabled: true
+    unit: "mL"
+  chamber_volumes:
+    enabled: true
+    description: "Volumes of all four cardiac chambers"
+    chambers:
+      - LV_EDV  # Left Ventricle End-Diastolic Volume
+      - LV_ESV  # Left Ventricle End-Systolic Volume
+      - RV_EDV  # Right Ventricle End-Diastolic Volume
+      - RV_ESV  # Right Ventricle End-Systolic Volume
+      - LA_Volume
+      - RA_Volume
+  myocardial_mass:
+    enabled: true
+    unit: "g"
+    density: 1.05  # g/cm3, density of myocardium
+    description: "Myocardial mass calculated from volume"
+  ejection_fraction:
+    enabled: true
+    unit: "%"
+    description: "Ventricular ejection fraction (requires ED/ES phases)"
+    normal_ranges:
+      LVEF_male: [52, 72]
+      LVEF_female: [54, 74]
+      RVEF: [45, 60]
+  calcium_score:
+    enabled: true
+    unit: "Agatston"
+    description: "Coronary artery calcium score"
+    risk_categories:
+      - name: "None"
+        range: [0, 0]
+      - name: "Minimal"
+        range: [1, 10]
+      - name: "Mild"
+        range: [11, 100]
+      - name: "Moderate"
+        range: [101, 400]
+      - name: "Severe"
+        range: [401, null]
+
+# === Export Configuration ===
+export_formats:
+  - nifti
+  - csv
+  - json
+  - dicom-seg
+  - mesh
+
+# === Rendering Presets ===
+rendering_presets:
+  cardiac_ct:
+    name: "Cardiac CT"
+    description: "Standard cardiac CT visualization"
+    window_width: 400
+    window_center: 40
+    opacity_function: "soft"
+
+  coronary_cta:
+    name: "Coronary CTA"
+    description: "Coronary artery CTA visualization"
+    window_width: 600
+    window_center: 300
+    opacity_function: "vessel"
+
+  calcium_scoring:
+    name: "Calcium Scoring"
+    description: "Optimized for calcium detection"
+    window_width: 130
+    window_center: 90
+    opacity_function: "bone"
+    threshold: 130  # HU threshold for calcium
+
+  cardiac_mri:
+    name: "Cardiac MRI"
+    description: "Cardiac cine MRI visualization"
+    window_width: 800
+    window_center: 400
+    opacity_function: "soft"
+
+# === Detection Hints (for auto-detection) ===
+detection_hints:
+  modalities:
+    - CT
+    - MR
+    - US
+  body_parts:
+    - CHEST
+    - HEART
+    - THORAX
+  description_keywords:
+    - cardiac
+    - heart
+    - coronary
+    - cta
+    - calcium
+    - calcium score
+    - agatston
+    - aorta
+    - ejection
+    - lvef
+    - rvef
+    - chamber
+    - ventricle
+    - atrium
+    - myocardium
+    - pericardium
+    - valve
+    - stenosis
+    - cine
+    - perfusion
+    - viability
+    - cardiomyopathy
+    - echo
+  protocol_keywords:
+    - cardiac
+    - coronary
+    - heart
+    - cta
+    - calcium score
+    - cac
+    - cardiac cine
+    - cardiac function
+    - lge
+    - perfusion
+    - stress test

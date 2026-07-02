@@ -1,0 +1,29 @@
+{
+  "name": "@medai/itk-loader",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "@medai/core": "workspace:*",
+    "itk-wasm": "^1.0.0-b.180",
+    "@itk-wasm/image-io": "^1.3.0",
+    "dicom-parser": "^1.8.21"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0",
+    "vite-plugin-dts": "^3.9.0",
+    "vitest": "^1.6.0"
+  }
+}

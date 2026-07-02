@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+.next
+.turbo
+.vite
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+.claude
+*.swp
+*.swo
+
+# Testing tools
+.playwright-mcp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage
+test-*.*
+TEST_*.md
+*.backup
+
+# Screenshots and temporary files
+*.png
+!public/*.png
+!docs/*.png
