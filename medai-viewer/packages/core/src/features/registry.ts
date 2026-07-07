@@ -80,6 +80,13 @@ export const FEATURE_REGISTRY: Record<FeatureId, FeatureConfig> = {
     requiresUrl: 'monaiServerUrl',
     composeProfile: 'segmentation',
   },
+  agent: {
+    id: 'agent',
+    name: 'Agent Window',
+    description: 'Natural-language batch-orchestration harness (Claude tool-use)',
+    requiresUrl: 'chatServiceUrl',
+    composeProfile: 'ai',
+  },
 };
 
 export const ALL_FEATURE_IDS = Object.keys(FEATURE_REGISTRY) as FeatureId[];

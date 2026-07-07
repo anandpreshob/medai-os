@@ -31,6 +31,7 @@ export * from './services/OncologyExportService';
 export * from './services/SessionExportService';
 export * from './services/AuditService';
 export { ChatService, type ChatRequest, type ChatResponse, type ChatStreamChunk, type EvidenceRequest } from './services/ChatService';
+export { AgentService, type AgentEvent, type AgentHealth } from './services/AgentService';
 
 // Stores
 export * from './stores/viewerStore';

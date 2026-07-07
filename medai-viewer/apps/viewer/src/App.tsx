@@ -10,7 +10,9 @@ import {
   TiffLoader,
   DicomLoader,
 } from '@medai/itk-loader';
+import { LauncherPage } from './pages/LauncherPage';
 import { StudyBrowserPage } from './pages/StudyBrowserPage';
+import { AgentPage } from './pages/AgentPage';
 import { ViewerPage } from './pages/ViewerPage';
 import { UploadPage } from './pages/UploadPage';
 import { ReportPage } from './pages/ReportPage';
@@ -65,7 +67,9 @@ export function App() {
     <ThemeProvider defaultMode="dark">
       <div className="h-screen w-screen overflow-hidden">
         <Routes>
-          <Route path="/" element={<StudyBrowserPage />} />
+          <Route path="/" element={<LauncherPage />} />
+          <Route path="/studies" element={<StudyBrowserPage />} />
+          {isFeatureEnabled('agent') && <Route path="/agent" element={<AgentPage />} />}
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/viewer" element={<ViewerPage />} />
           {isFeatureEnabled('reports') && <Route path="/report" element={<ReportPage />} />}

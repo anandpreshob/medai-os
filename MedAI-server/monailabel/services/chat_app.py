@@ -59,6 +59,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount the Claude tool-use agent (batch orchestration harness).
+# Optional: only available when the `anthropic` package is installed in the image.
+try:
+    from monailabel.agent.agent_endpoints import router as agent_router
+
+    # Register at both /agent and /chat/agent to match the existing chat
+    # endpoints' double-registration (papers over root_path + nginx prefix).
+    app.include_router(agent_router)
+    app.include_router(agent_router, prefix="/chat")
+    logger.info("MedAI agent router mounted at /agent and /chat/agent")
+except Exception as _agent_err:  # noqa: BLE001
+    logger.warning("MedAI agent router not mounted: %s", _agent_err)
+
 
 # ============================================================================
 # Request/Response Models

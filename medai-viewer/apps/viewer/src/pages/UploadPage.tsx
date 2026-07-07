@@ -152,7 +152,7 @@ export function UploadPage() {
 
       // Navigate back to study browser after a delay
       setTimeout(() => {
-        navigate('/');
+        navigate('/studies');
       }, 2000);
     } else {
       toast.error('Upload Failed', 'All uploads failed');
@@ -217,7 +217,7 @@ export function UploadPage() {
           {/* Logo & Title */}
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/studies')}
               className="p-2 hover:bg-white/5 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-white/60" />

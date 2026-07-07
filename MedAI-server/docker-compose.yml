@@ -316,6 +316,11 @@ services:
       - VLLM_SERVICE_URL=http://medgemma-vllm:8000
       - MODEL_NAME=medgemma
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # MedAI Agent (Claude tool-use batch-orchestration harness)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AGENT_MODEL=${AGENT_MODEL:-claude-sonnet-5}
+      - MONAI_LABEL_SERVER_URL=http://inference:8001
+      - ORTHANC_DICOMWEB_URL=http://orthanc:8042/dicom-web
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
       interval: 30s

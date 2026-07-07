@@ -16,9 +16,9 @@ RUN pip install --upgrade pip setuptools wheel
 
 COPY dockerfiles/requirements-llm.txt /code/requirements.txt
 
-# Add SSE support for streaming
+# Add SSE support for streaming + Anthropic SDK for the agent tool-use loop
 RUN pip install --no-cache-dir -r /code/requirements.txt && \
-    pip install --no-cache-dir sse-starlette==2.1.0
+    pip install --no-cache-dir sse-starlette==2.1.0 anthropic==0.40.0 httpx
 
 # =====================================
 # Runtime Stage
@@ -46,6 +46,10 @@ COPY monailabel/llm/ /code/monailabel/llm/
 
 # Copy MCP tools (used by chat orchestrator)
 COPY monailabel/mcp/ /code/monailabel/mcp/
+
+# Copy the agent module (Claude tool-use batch-orchestration harness).
+# It reaches the MONAI Label server over HTTP, so no backend endpoints are needed here.
+COPY monailabel/agent/ /code/monailabel/agent/
 
 ENV PYTHONPATH=/code:$PYTHONPATH
 ENV SERVICE_NAME=chat

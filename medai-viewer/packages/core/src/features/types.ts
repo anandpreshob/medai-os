@@ -19,7 +19,8 @@ export type FeatureId =
   | 'audit' // Regulatory audit logging (hash-chain)
   | 'batch' // Batch inference jobs (WebSocket progress)
   | 'reports' // AI report generation + report page
-  | 'registration'; // Image registration + segmentation propagation
+  | 'registration' // Image registration + segmentation propagation
+  | 'agent'; // Natural-language batch-orchestration agent window
 
 /**
  * Server URL keys a feature may depend on (populated at boot from env/config)

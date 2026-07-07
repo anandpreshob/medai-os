@@ -783,3 +783,170 @@ async def get_preview_image(
         )
 
     return FileResponse(preview_path)
+
+
+# ============================================================================
+# Save batch results to PACS as DICOM-SEG
+# ============================================================================
+
+# Default segment colors cycled per label
+_SEG_COLORS = [
+    [255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0],
+    [255, 0, 255], [0, 255, 255], [255, 128, 0], [128, 0, 255],
+]
+
+
+def _build_segments(labels: List[str]) -> List[Dict[str, Any]]:
+    """Build DICOM-SEG segment metadata from a result's label list."""
+    names = labels or ["Segmentation"]
+    segments = []
+    for i, name in enumerate(names):
+        segments.append(
+            {
+                "segmentIndex": i + 1,
+                "label": str(name),
+                "color": _SEG_COLORS[i % len(_SEG_COLORS)],
+                "algorithmType": "AUTOMATIC",
+                "algorithmName": "MedAI-Agent",
+            }
+        )
+    return segments
+
+
+def _resolve_dicom_dir(datastore, image_id: str) -> Optional[str]:
+    """Best-effort resolution of the source DICOM series directory for an image."""
+    # DICOMWeb datastore caches the series under image_path()/<image_id>
+    try:
+        # Trigger download/conversion so the cache dir is populated
+        datastore.get_image_uri(image_id)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"get_image_uri({image_id}) failed: {e}")
+    try:
+        inner = getattr(datastore, "_datastore", None)
+        if inner is not None and hasattr(inner, "image_path"):
+            candidate = os.path.join(inner.image_path(), image_id)
+            if os.path.isdir(candidate) and os.listdir(candidate):
+                return candidate
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"image_path resolution failed for {image_id}: {e}")
+    return None
+
+
+def _resolve_study_series(datastore, image_id: str) -> tuple:
+    """Return (study_uid, series_uid) for a datastore image id."""
+    series_uid = image_id
+    study_uid = ""
+    # DICOMWeb datastore exposes _dicom_info(series_id)
+    try:
+        if hasattr(datastore, "_dicom_info"):
+            info = datastore._dicom_info(image_id)
+            study_uid = info.get("StudyInstanceUID", "") or study_uid
+            series_uid = info.get("SeriesInstanceUID", series_uid) or series_uid
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"_dicom_info failed for {image_id}: {e}")
+    if not study_uid:
+        try:
+            info = datastore.get_image_info(image_id) or {}
+            study_uid = info.get("StudyInstanceUID", "") or study_uid
+        except Exception:  # noqa: BLE001
+            pass
+    if not study_uid:
+        study_uid = getattr(datastore, "_studyInstanceUID", "") or ""
+    return study_uid, series_uid
+
+
+def _get_stow_client(datastore):
+    """Return a DICOMwebClient for STOW, from the datastore or ORTHANC_DICOMWEB_URL."""
+    client = getattr(datastore, "_client", None)
+    if client is not None:
+        return client
+    url = os.environ.get("ORTHANC_DICOMWEB_URL", "http://orthanc:8042/dicom-web")
+    from dicomweb_client.api import DICOMwebClient
+
+    return DICOMwebClient(url=url)
+
+
+@router.post("/process/{job_id}/save-pacs", summary=f"{RBAC_USER}Push batch results to PACS as DICOM-SEG")
+async def save_batch_to_pacs(
+    job_id: str,
+    user: User = Depends(RBAC(settings.MONAI_LABEL_AUTH_ROLE_USER)),
+) -> Dict[str, Any]:
+    """
+    Convert every completed result of a batch job to DICOM-SEG and push it to
+    PACS (Orthanc) via DICOMweb STOW-RS, so the segmentation shows up in the
+    viewer for the source study and can be refined with the editing tools.
+
+    Returns a per-file push report.
+    """
+    from monailabel.endpoints.dicomseg import (
+        create_dicom_seg_template,
+        nifti_to_dicom_seg_export,
+    )
+    from monailabel.datastore.utils.dicom import dicom_web_upload_dcm
+
+    manager = get_manager()
+    job = await manager.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    instance: MONAILabelApp = app_instance()
+    datastore = instance.datastore()
+
+    try:
+        client = _get_stow_client(datastore)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Could not create PACS client: {e}")
+
+    results = []
+    pushed = 0
+    for image_id, file_result in job.results.items():
+        if file_result.status != "completed" or not file_result.mask_path:
+            continue
+        entry: Dict[str, Any] = {"image_id": image_id, "success": False}
+        try:
+            if not os.path.exists(file_result.mask_path):
+                raise FileNotFoundError(f"Mask not found: {file_result.mask_path}")
+
+            study_uid, series_uid = _resolve_study_series(datastore, image_id)
+            dicom_dir = _resolve_dicom_dir(datastore, image_id)
+            if not dicom_dir:
+                raise RuntimeError("Source DICOM series not available for reference")
+
+            template = create_dicom_seg_template(
+                segments=_build_segments(file_result.labels),
+                series_description=f"MedAI Agent - {job.prompt}",
+                content_creator="MedAI Agent",
+            )
+            seg_dcm = nifti_to_dicom_seg_export(
+                mask_path=file_result.mask_path,
+                dicom_dir=dicom_dir,
+                template=template,
+            )
+            try:
+                seg_series_uid = dicom_web_upload_dcm(seg_dcm, client)
+            finally:
+                if os.path.exists(seg_dcm):
+                    os.remove(seg_dcm)
+
+            entry.update(
+                {
+                    "success": True,
+                    "study_uid": study_uid,
+                    "series_uid": series_uid,
+                    "seg_series_uid": seg_series_uid,
+                }
+            )
+            pushed += 1
+        except Exception as e:  # noqa: BLE001
+            logger.exception(f"save-pacs failed for {image_id}")
+            entry["error"] = str(e)
+        results.append(entry)
+
+    return {
+        "job_id": job_id,
+        "pushed": pushed,
+        "total_completed": sum(
+            1 for r in job.results.values() if r.status == "completed"
+        ),
+        "results": results,
+    }
