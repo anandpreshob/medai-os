@@ -33,6 +33,7 @@ import {
 } from '@cornerstonejs/tools';
 import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader';
 import { cornerstoneNiftiImageLoader, init as niftiInit } from '@cornerstonejs/nifti-volume-loader';
+import { installSuvProvider } from './suv';
 
 /** Every tool the Tier 1 viewer uses; registered globally once. */
 export const ALL_TOOLS = [
@@ -73,6 +74,7 @@ export function initEngine(): Promise<void> {
       maxWebWorkers: Math.max(1, Math.floor((navigator.hardwareConcurrency || 4) / 2)),
     });
     niftiInit();
+    installSuvProvider();
     imageLoader.registerImageLoader('nifti', cornerstoneNiftiImageLoader as Parameters<typeof imageLoader.registerImageLoader>[1]);
     type VolumeLoaderFn = Parameters<typeof volumeLoader.registerVolumeLoader>[1];
     const streaming = cornerstoneStreamingImageVolumeLoader as unknown as VolumeLoaderFn;

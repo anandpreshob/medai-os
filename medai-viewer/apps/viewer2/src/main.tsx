@@ -17,6 +17,8 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // Test/agent hook: the same command surface the UI uses.
 (window as unknown as { __medai: unknown }).__medai = { executeCommand, listCommands, getCommandLog, toToolDefinitions };
+// Engine internals for debugging and tests (metadata providers, cache); not part of the command surface.
+void import('@cornerstonejs/core').then((core) => ((window as unknown as { __cs: unknown }).__cs = core));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

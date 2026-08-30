@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@cornerstonejs/adapters": "5.8.2",
+    "@cornerstonejs/calculate-suv": "1.0.3",
     "@cornerstonejs/core": "5.8.2",
     "@cornerstonejs/dicom-image-loader": "5.8.2",
     "@cornerstonejs/metadata": "5.8.2",

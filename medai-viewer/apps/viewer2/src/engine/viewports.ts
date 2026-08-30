@@ -379,6 +379,17 @@ export class ViewportManager {
     return volumeId ? this.volumeProgress.get(volumeId) ?? 0 : 100;
   }
 
+  /** Displayed intensity (after modality LUT / SUV pre-scaling) at a world position. Volume viewports only. */
+  sampleValue(i: number, world: [number, number, number]): number {
+    const s = this.slots.get(i);
+    const vp = this.viewport(i);
+    if (!vp || !s?.kind) throw new Error('No image in the active viewport');
+    if (s.kind === 'stack') throw new Error('Sampling by world position needs an MPR/volume viewport');
+    const v = (vp as Types.IVolumeViewport).getIntensityFromWorld(world);
+    if (!Number.isFinite(v)) throw new Error('Position is outside the volume');
+    return v;
+  }
+
   /** Modality of the series in a slot, from metadata of the current image. */
   modality(i: number): string | undefined {
     const id = this.currentImageId(i);

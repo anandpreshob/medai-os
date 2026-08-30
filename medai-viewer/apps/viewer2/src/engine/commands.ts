@@ -143,6 +143,14 @@ export const VIEWER_COMMANDS: CommandDefinition<any, any>[] = [
     },
   },
   {
+    id: 'viewer.sampleValue',
+    title: 'Sample voxel value',
+    description: 'Read the displayed voxel value (HU for CT, SUV for SUV-scaled PET, raw otherwise) at a patient/world position in mm (LPS) in the active MPR viewport.',
+    category: 'measure',
+    input: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' }, z: { type: 'number' } }, required: ['x', 'y', 'z'], additionalProperties: false },
+    run: ({ x, y, z }: { x: number; y: number; z: number }) => ({ value: viewports.sampleValue(active(), [x, y, z]), suvScaled: viewports.isSuvScaled(active()) }),
+  },
+  {
     id: 'viewer.invert',
     title: 'Invert grayscale',
     description: 'Toggle grayscale inversion on the active viewport.',

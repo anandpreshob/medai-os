@@ -561,6 +561,39 @@
     "output": "sample-data/synth/synth-rtstruct/"
   },
   {
+    "id": "synth-petct",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "PT + CT",
+    "format": "DICOM series x2 (CT + PET Image Storage)",
+    "description": "Co-registered PET/CT pair in one FrameOfReferenceUID, patient SYNTH^PETCT / SYNTH-002: CT 64x64x32 @ 2x2x3 mm (soft-tissue ellipsoid in air, faint +60 HU lesion) and PET 32x32x32 @ 4x4x3 mm covering the same 128x128x96 mm extent (Units=BQML, DecayCorrection=START, PatientWeight 70 kg, 370 MBq F-18 injected 60 min before SeriesTime, full RadiopharmaceuticalInformationSequence). Hot sphere r=12 mm at LPS (20,-12,0) with SUVbw ~8.0 on a ~1.0 background; expected.json gives the SUVbw scale factor (SeriesTime and AcquisitionTime variants), SUVmax/mean and sphere geometry.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "PET / SUV / fusion",
+      "DICOM local file / folder",
+      "CT uncompressed"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-petct/"
+  },
+  {
+    "id": "synth-dx-jpeg",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "DX",
+    "format": "DICOM (JPEG Baseline Process 1, 1.2.840.10008.1.2.4.50) + uncompressed twin",
+    "description": "512x512 8-bit MONOCHROME2 chest-like DX phantom (dark lungs, curved ribs, bright mediastinum, heart shadow; ImagerPixelSpacing 0.15 mm) with Pillow-encoded JPEG baseline q90 pixel data in encapsulated form, plus synth-dx-uncompressed.dcm from the same array. expected.json has lung / mediastinum ROI rectangles and their means from the decoded JPEG, and max_abs_diff_vs_uncompressed.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "CR/DX",
+      "CT compressed"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-dx-jpeg/"
+  },
+  {
     "id": "itk-mha",
     "tier": "P1",
     "kind": "synthetic",

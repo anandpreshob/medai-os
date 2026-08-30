@@ -10,13 +10,15 @@ byte-identical files (see sample-data/synth/checksums.json). Every output is
 re-opened with pydicom / nibabel / SimpleITK and its geometry asserted against
 the values written to each fixture's expected.json.
 
-Requires: numpy, pydicom>=3, nibabel, SimpleITK. highdicom is optional
-(synth-seg is skipped with a message if it is missing).
+Requires: numpy, pydicom>=3, nibabel, SimpleITK. highdicom and Pillow are
+optional (synth-seg / synth-dx-jpeg are skipped with a message if missing).
+The JPEG bytes of synth-dx-jpeg are stable for a given Pillow/libjpeg build.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import math
 import sys
@@ -32,6 +34,8 @@ from pydicom.uid import (
     CTImageStorage,
     DigitalXRayImageStorageForPresentation,
     ExplicitVRLittleEndian,
+    JPEGBaseline8Bit,
+    PositronEmissionTomographyImageStorage,
     RTStructureSetStorage,
     SecondaryCaptureImageStorage,
     XRayAngiographicImageStorage,
@@ -71,7 +75,7 @@ def sha256(path: Path) -> str:
 
 
 def base_dataset(fixture: str, sop_class: str, sop_uid: str, modality: str, series_number: int,
-                 series_desc: str) -> Dataset:
+                 series_desc: str, patient: tuple[str, str] = (PATIENT_NAME, PATIENT_ID)) -> Dataset:
     ds = Dataset()
     ds.file_meta = FileMetaDataset()
     ds.file_meta.MediaStorageSOPClassUID = sop_class
@@ -80,8 +84,7 @@ def base_dataset(fixture: str, sop_class: str, sop_uid: str, modality: str, seri
     ds.SOPClassUID = sop_class
     ds.SOPInstanceUID = sop_uid
     ds.SpecificCharacterSet = "ISO_IR 100"
-    ds.PatientName = PATIENT_NAME
-    ds.PatientID = PATIENT_ID
+    ds.PatientName, ds.PatientID = patient
     ds.PatientBirthDate = ""
     ds.PatientSex = "O"
     ds.StudyInstanceUID = uid(fixture, "study")
@@ -133,16 +136,19 @@ def cuboid_mask() -> np.ndarray:
 class CTGeometry:
     """DICOM (LPS) geometry: row/col direction cosines, spacing, first-slice origin."""
 
-    def __init__(self, spacing: tuple[float, float, float], rot_z_deg: float = 0.0):
+    def __init__(self, spacing: tuple[float, float, float], rot_z_deg: float = 0.0,
+                 shape: tuple[int, int, int] = (NX, NY, NZ)):
         self.spacing = spacing  # (x, y, z) mm
+        self.shape = shape      # (nx, ny, nz) voxels
+        nx, ny, nz = shape
         th = math.radians(rot_z_deg)
         self.row_dir = np.array([math.cos(th), math.sin(th), 0.0])   # direction of increasing column index (x)
         self.col_dir = np.array([-math.sin(th), math.cos(th), 0.0])  # direction of increasing row index (y)
         self.normal = np.cross(self.row_dir, self.col_dir)
         sx, sy, sz = spacing
         # centre the volume on the origin
-        centre_offset = (self.row_dir * (NX - 1) / 2 * sx + self.col_dir * (NY - 1) / 2 * sy
-                         + self.normal * (NZ - 1) / 2 * sz)
+        centre_offset = (self.row_dir * (nx - 1) / 2 * sx + self.col_dir * (ny - 1) / 2 * sy
+                         + self.normal * (nz - 1) / 2 * sz)
         self.origin = -centre_offset
         self.rot_z_deg = rot_z_deg
 
@@ -169,13 +175,15 @@ class CTGeometry:
         return (self.affine_lps() @ np.array([i, j, k, 1.0]))[:3]
 
 
-def write_ct_series(fixture: str, out_dir: Path, hu: np.ndarray, geo: CTGeometry) -> list[Dataset]:
+def write_ct_series(fixture: str, out_dir: Path, hu: np.ndarray, geo: CTGeometry,
+                    patient: tuple[str, str] = (PATIENT_NAME, PATIENT_ID)) -> list[Dataset]:
     stored = (hu.astype(np.int32) - RESCALE_INTERCEPT).astype("<u2")
     frame_uid = uid(fixture, "frame-of-reference")
+    nz, ny, nx = hu.shape
     datasets = []
-    for k in range(NZ):
+    for k in range(nz):
         sop = uid(fixture, "ct", k)
-        ds = base_dataset(fixture, CTImageStorage, sop, "CT", 1, f"{fixture} CT")
+        ds = base_dataset(fixture, CTImageStorage, sop, "CT", 1, f"{fixture} CT", patient=patient)
         ds.FrameOfReferenceUID = frame_uid
         ds.PositionReferenceIndicator = ""
         ds.ImageType = ["ORIGINAL", "PRIMARY", "AXIAL"]
@@ -191,7 +199,7 @@ def write_ct_series(fixture: str, out_dir: Path, hu: np.ndarray, geo: CTGeometry
         ds.SliceLocation = float(round(float(np.dot(geo.ipp(k), geo.normal)), 6))
         ds.SamplesPerPixel = 1
         ds.PhotometricInterpretation = "MONOCHROME2"
-        ds.Rows, ds.Columns = NY, NX
+        ds.Rows, ds.Columns = ny, nx
         ds.BitsAllocated, ds.BitsStored, ds.HighBit = 16, 16, 15
         ds.PixelRepresentation = 0
         ds.RescaleIntercept = RESCALE_INTERCEPT
@@ -638,6 +646,426 @@ def gen_rtstruct(out_root: Path, ct_datasets: list[Dataset], geo: CTGeometry) ->
 
 
 # ----------------------------------------------------------------------------
+# PET/CT pair (SUVbw + fusion)
+# ----------------------------------------------------------------------------
+PETCT_PATIENT = ("SYNTH^PETCT", "SYNTH-002")
+PETCT_CT_SHAPE, PETCT_CT_SPACING = (64, 64, 32), (2.0, 2.0, 3.0)
+PETCT_PT_SHAPE, PETCT_PT_SPACING = (32, 32, 32), (4.0, 4.0, 3.0)   # same 128x128x96 mm extent as the CT
+PETCT_BODY_RADII_MM = (52.0, 46.0, 40.0)      # soft-tissue ellipsoid centred on the LPS origin
+PETCT_SPHERE_CENTRE_LPS = (20.0, -12.0, 0.0)  # hot sphere (PET) / faint lesion (CT)
+PETCT_SPHERE_RADIUS_MM = 12.0
+PETCT_CT_LESION_HU = 60
+PETCT_WEIGHT_KG, PETCT_HEIGHT_M = 70, 1.75
+PETCT_DOSE_BQ = 370000000                     # RadionuclideTotalDose (10 mCi)
+PETCT_HALF_LIFE_S = 6586.2                    # F-18
+PETCT_INJECTION_TIME = "110000.000000"        # RadiopharmaceuticalStartTime
+PETCT_SCAN_TIME = TIME                        # SeriesTime: 60 min post injection
+PETCT_ACQ_TIME = "120130.000000"              # AcquisitionTime: 90 s after SeriesTime
+PETCT_FRAME_DURATION_MS = 180000
+PETCT_PT_SLOPE = 0.5                          # RescaleSlope: Bq/mL = stored * 0.5
+PETCT_SUV_BACKGROUND, PETCT_SUV_HOT = 1.0, 8.0
+PETCT_PT_NOISE_FRACTION = 0.01                # Gaussian sigma as a fraction of the background stored value
+
+
+def tm_seconds(tm: str) -> float:
+    """DICOM TM (HHMMSS.ffffff) -> seconds since midnight."""
+    return int(tm[0:2]) * 3600 + int(tm[2:4]) * 60 + float(tm[4:])
+
+
+def decay_factor(scan_tm: str, injection_tm: str, half_life_s: float) -> float:
+    return math.exp(-math.log(2) * (tm_seconds(scan_tm) - tm_seconds(injection_tm)) / half_life_s)
+
+
+def grid_lps(geo: CTGeometry) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """LPS coordinates (mm) of every voxel centre; each array is indexed [z, y, x]."""
+    nx, ny, nz = geo.shape
+    k, j, i = np.mgrid[0:nz, 0:ny, 0:nx]
+    a = geo.affine_lps()
+    return tuple(a[r, 0] * i + a[r, 1] * j + a[r, 2] * k + a[r, 3] for r in range(3))
+
+
+def petct_masks(geo: CTGeometry) -> tuple[np.ndarray, np.ndarray]:
+    """(body ellipsoid, hot sphere) masks on the given grid, defined in physical (LPS) space."""
+    x, y, z = grid_lps(geo)
+    rx, ry, rz = PETCT_BODY_RADII_MM
+    body = (x / rx) ** 2 + (y / ry) ** 2 + (z / rz) ** 2 <= 1.0
+    cx, cy, cz = PETCT_SPHERE_CENTRE_LPS
+    sphere = (x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2 <= PETCT_SPHERE_RADIUS_MM ** 2
+    return body, sphere
+
+
+def write_pt_series(fixture: str, out_dir: Path, stored: np.ndarray, geo: CTGeometry, frame_uid: str,
+                    window: tuple[float, float]) -> list[Dataset]:
+    nz, ny, nx = stored.shape
+    datasets = []
+    for k in range(nz):
+        sop = uid(fixture, "pt", k)
+        ds = base_dataset(fixture, PositronEmissionTomographyImageStorage, sop, "PT", 2, f"{fixture} PT",
+                          patient=PETCT_PATIENT)
+        ds.FrameOfReferenceUID = frame_uid
+        ds.PositionReferenceIndicator = ""
+        ds.ImageType = ["ORIGINAL", "PRIMARY"]
+        ds.PatientPosition = "HFS"
+        ds.PatientWeight = PETCT_WEIGHT_KG
+        ds.PatientSize = PETCT_HEIGHT_M
+        ds.AcquisitionDate = DATE
+        ds.AcquisitionTime = PETCT_ACQ_TIME
+        ds.AcquisitionNumber = 1
+        ds.InstanceNumber = k + 1
+        ds.ImageIndex = k + 1
+        ds.ImagePositionPatient = [float(round(v, 6)) for v in geo.ipp(k)]
+        ds.ImageOrientationPatient = [round(v, 8) for v in geo.iop()]
+        ds.PixelSpacing = [geo.spacing[1], geo.spacing[0]]
+        ds.SliceThickness = geo.spacing[2]
+        ds.SpacingBetweenSlices = geo.spacing[2]
+        ds.SliceLocation = float(round(float(np.dot(geo.ipp(k), geo.normal)), 6))
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        ds.Rows, ds.Columns = ny, nx
+        ds.BitsAllocated, ds.BitsStored, ds.HighBit = 16, 16, 15
+        ds.PixelRepresentation = 0
+        ds.RescaleIntercept = 0
+        ds.RescaleSlope = PETCT_PT_SLOPE
+        ds.WindowCenter = window[0]
+        ds.WindowWidth = window[1]
+        # PET Series / PET Image modules
+        ds.Units = "BQML"
+        ds.CountsSource = "EMISSION"
+        ds.SeriesType = ["STATIC", "IMAGE"]
+        ds.NumberOfSlices = nz
+        ds.NumberOfTimeSlices = 1
+        ds.CorrectedImage = ["DECY", "ATTN"]
+        ds.DecayCorrection = "START"
+        ds.ReconstructionMethod = "SYNTHETIC"
+        ds.CollimatorType = "NONE"
+        ds.RandomsCorrectionMethod = "NONE"
+        ds.AttenuationCorrectionMethod = "CT"
+        ds.ScatterCorrectionMethod = "NONE"
+        ds.DoseCalibrationFactor = 1.0
+        ds.FrameReferenceTime = 0.0            # ms from scan start; decay corrected to START
+        ds.ActualFrameDuration = PETCT_FRAME_DURATION_MS
+        rp = Dataset()
+        rp.Radiopharmaceutical = "Fludeoxyglucose F^18^"
+        rp.RadiopharmaceuticalStartTime = PETCT_INJECTION_TIME
+        rp.RadiopharmaceuticalStartDateTime = DATE + PETCT_INJECTION_TIME
+        rp.RadionuclideTotalDose = PETCT_DOSE_BQ
+        rp.RadionuclideHalfLife = PETCT_HALF_LIFE_S
+        nuc = Dataset()
+        nuc.CodeValue, nuc.CodingSchemeDesignator, nuc.CodeMeaning = "C-111A1", "SRT", "^18^Fluorine"
+        rp.RadionuclideCodeSequence = Sequence([nuc])
+        agent = Dataset()
+        agent.CodeValue, agent.CodingSchemeDesignator, agent.CodeMeaning = "C-B1031", "SRT", "Fluorodeoxyglucose F^18^"
+        rp.RadiopharmaceuticalCodeSequence = Sequence([agent])
+        ds.RadiopharmaceuticalInformationSequence = Sequence([rp])
+        ds.PixelData = stored[k].tobytes()
+        save(ds, out_dir / f"pt_{k + 1:03d}.dcm")
+        datasets.append(ds)
+    return datasets
+
+
+def gen_petct(out_root: Path, rng: np.random.Generator) -> None:
+    fixture = "synth-petct"
+    out_dir = out_root / fixture
+    ct_geo = CTGeometry(PETCT_CT_SPACING, 0.0, PETCT_CT_SHAPE)
+    pt_geo = CTGeometry(PETCT_PT_SPACING, 0.0, PETCT_PT_SHAPE)
+    # CT: soft-tissue ellipsoid in air, faint lesion where the PET sphere sits (fusion landmark)
+    body, sphere = petct_masks(ct_geo)
+    hu = np.full(body.shape, HU_AIR, dtype=np.int32)
+    hu[body] = HU_BODY
+    hu[sphere] = PETCT_CT_LESION_HU
+    hu = np.clip(hu + rng.normal(0.0, 3.0, hu.shape).round().astype(np.int32), -1024, 3071).astype(np.int16)
+    # PET: activity concentration chosen so that SUVbw(background) = 1 and SUVbw(sphere) = 8 using SeriesTime
+    weight_g = PETCT_WEIGHT_KG * 1000
+    df_series = decay_factor(PETCT_SCAN_TIME, PETCT_INJECTION_TIME, PETCT_HALF_LIFE_S)
+    df_acq = decay_factor(PETCT_ACQ_TIME, PETCT_INJECTION_TIME, PETCT_HALF_LIFE_S)
+    suv_per_bqml = weight_g / (PETCT_DOSE_BQ * df_series)
+    bqml_per_suv = 1.0 / suv_per_bqml
+    stored_bg = int(round(PETCT_SUV_BACKGROUND * bqml_per_suv / PETCT_PT_SLOPE))
+    stored_hot = int(round(PETCT_SUV_HOT * bqml_per_suv / PETCT_PT_SLOPE))
+    pbody, psphere = petct_masks(pt_geo)
+    act = np.zeros(pbody.shape, dtype=np.float64)
+    act[pbody] = stored_bg
+    act[psphere] = stored_hot
+    act += rng.normal(0.0, PETCT_PT_NOISE_FRACTION * stored_bg, act.shape)
+    stored = np.clip(act.round(), 0, 65535).astype("<u2")
+    frame_uid = uid(fixture, "frame-of-reference")
+    window = (round(5.0 * bqml_per_suv, 3), round(10.0 * bqml_per_suv, 3))  # SUV 0..10 in Bq/mL
+    ct_ds = write_ct_series(fixture, out_dir / "dicom" / "ct", hu, ct_geo, patient=PETCT_PATIENT)
+    pt_ds = write_pt_series(fixture, out_dir / "dicom" / "pt", stored, pt_geo, frame_uid, window)
+    assert ct_ds[0].FrameOfReferenceUID == frame_uid
+
+    bq = stored.astype(np.float64) * PETCT_PT_SLOPE
+    bg_mask = pbody & ~psphere
+
+    def suv_block(df: float, scan_tag: str, scan_time: str) -> dict:
+        f = weight_g / (PETCT_DOSE_BQ * df)
+        return {
+            "scan_time_source": scan_tag, "scan_time": scan_time,
+            "elapsed_since_injection_s": tm_seconds(scan_time) - tm_seconds(PETCT_INJECTION_TIME),
+            "decay_factor": df,
+            "suv_per_bq_per_ml": f,
+            "suv_per_stored_unit": f * PETCT_PT_SLOPE,
+            "sphere_suv_max": float(bq[psphere].max() * f),
+            "sphere_suv_mean": float(bq[psphere].mean() * f),
+            "sphere_suv_min": float(bq[psphere].min() * f),
+            "background_suv_mean": float(bq[bg_mask].mean() * f),
+            "background_suv_std": float(bq[bg_mask].std() * f),
+        }
+
+    ext = [n * s for n, s in zip(PETCT_CT_SHAPE, PETCT_CT_SPACING)]
+    exp = {
+        "fixture": fixture,
+        "patient": {"name": PETCT_PATIENT[0], "id": PETCT_PATIENT[1], "weight_kg": PETCT_WEIGHT_KG, "size_m": PETCT_HEIGHT_M},
+        "study_instance_uid": ct_ds[0].StudyInstanceUID,
+        "frame_of_reference_uid": frame_uid,
+        "physical_extent_mm_xyz": ext,
+        "ct": {
+            "series_instance_uid": ct_ds[0].SeriesInstanceUID, "sop_class_uid": CTImageStorage, "modality": "CT",
+            "volume_shape_xyz": list(PETCT_CT_SHAPE), "slice_count": PETCT_CT_SHAPE[2], "spacing_mm_xyz": list(PETCT_CT_SPACING),
+            "image_orientation_patient": ct_geo.iop(),
+            "first_slice_image_position_patient": [float(v) for v in ct_geo.ipp(0)],
+            "rescale_intercept": RESCALE_INTERCEPT, "rescale_slope": 1, "window_center": WINDOW_CENTER, "window_width": WINDOW_WIDTH,
+            "hu": {"air": HU_AIR, "body": HU_BODY, "lesion": PETCT_CT_LESION_HU, "noise_sigma": 3},
+            "body_ellipsoid_radii_mm_xyz": list(PETCT_BODY_RADII_MM), "body_ellipsoid_centre_lps_mm": [0.0, 0.0, 0.0],
+            "lesion_voxel_count": int(sphere.sum()),
+        },
+        "pt": {
+            "series_instance_uid": pt_ds[0].SeriesInstanceUID, "sop_class_uid": PositronEmissionTomographyImageStorage, "modality": "PT",
+            "grid": "32x32x32 at 4x4x3 mm: same FrameOfReferenceUID and the same 128x128x96 mm physical extent as the CT, "
+                    "half the in-plane sampling (one PET voxel covers 2x2 CT voxels); the PET origin is therefore +1 mm in x and y "
+                    "from the CT origin and the same in z. Fusion must resample, not assume matching index grids.",
+            "volume_shape_xyz": list(PETCT_PT_SHAPE), "slice_count": PETCT_PT_SHAPE[2], "spacing_mm_xyz": list(PETCT_PT_SPACING),
+            "image_orientation_patient": pt_geo.iop(),
+            "first_slice_image_position_patient": [float(v) for v in pt_geo.ipp(0)],
+            "pixel_dtype": "uint16", "rescale_slope": PETCT_PT_SLOPE, "rescale_intercept": 0,
+            "units": "BQML", "decay_correction": "START", "corrected_image": ["DECY", "ATTN"],
+            "frame_reference_time_ms": 0.0, "actual_frame_duration_ms": PETCT_FRAME_DURATION_MS,
+            "window_center_bq_per_ml": window[0], "window_width_bq_per_ml": window[1],
+            "stored_value_background": stored_bg, "stored_value_hot": stored_hot,
+            "noise_sigma_stored": PETCT_PT_NOISE_FRACTION * stored_bg,
+            "activity_bq_per_ml_background_nominal": stored_bg * PETCT_PT_SLOPE,
+            "activity_bq_per_ml_hot_nominal": stored_hot * PETCT_PT_SLOPE,
+        },
+        "suv_bw": {
+            "formula": "SUVbw = C_Bq_per_mL * weight_g / (injected_dose_Bq * decay_factor); "
+                       "decay_factor = exp(-ln2 * (scan_time - injection_time) / half_life_s); "
+                       "C_Bq_per_mL = stored * RescaleSlope + RescaleIntercept",
+            "weight_g": weight_g, "injected_dose_bq": PETCT_DOSE_BQ, "half_life_s": PETCT_HALF_LIFE_S,
+            "radionuclide": {"code_value": "C-111A1", "coding_scheme_designator": "SRT", "code_meaning": "^18^Fluorine"},
+            "injection_time": PETCT_INJECTION_TIME, "series_time": PETCT_SCAN_TIME, "acquisition_time": PETCT_ACQ_TIME,
+            "date": DATE,
+            "primary": suv_block(df_series, "SeriesTime", PETCT_SCAN_TIME),
+            "alternative_acquisition_time": suv_block(df_acq, "AcquisitionTime", PETCT_ACQ_TIME),
+            "note": "DecayCorrection=START and SeriesTime <= AcquisitionTime, so the QIBA SUV pseudo-code uses SeriesTime as the "
+                    "scan time ('primary'); tools that use AcquisitionTime get the 'alternative' values (about 1.6% higher).",
+        },
+        "hot_sphere": {
+            "centre_lps_mm": list(PETCT_SPHERE_CENTRE_LPS), "radius_mm": PETCT_SPHERE_RADIUS_MM,
+            "volume_mm3_analytic": 4.0 / 3.0 * math.pi * PETCT_SPHERE_RADIUS_MM ** 3,
+            "pet_voxel_count": int(psphere.sum()), "pet_voxel_volume_mm3": int(psphere.sum()) * float(np.prod(PETCT_PT_SPACING)),
+            "ct_voxel_count": int(sphere.sum()), "ct_voxel_volume_mm3": int(sphere.sum()) * float(np.prod(PETCT_CT_SPACING)),
+            "membership": "voxel centre within radius (no partial-volume weighting)",
+        },
+        "background": {"region": "inside body ellipsoid, outside sphere", "pet_voxel_count": int(bg_mask.sum())},
+        "files": {"ct_dicom_dir": "dicom/ct/", "pt_dicom_dir": "dicom/pt/"},
+        "expected_rendering": "PET/CT fusion: the hot sphere (SUVbw ~8) must sit exactly on the faint +60 HU lesion at LPS "
+                              "(20, -12, 0) mm; body background SUVbw ~1; air ~0. A viewer that ignores RescaleSlope shows "
+                              "SUV twice too high; one that ignores decay shows SUV ~0.68x.",
+    }
+    (out_dir / "expected.json").write_text(json.dumps(exp, indent=2) + "\n")
+    verify_petct(fixture, out_dir, exp, hu, stored, pt_geo)
+    p = exp["suv_bw"]["primary"]
+    print(f"  {fixture}: CT {PETCT_CT_SHAPE} @ {PETCT_CT_SPACING} mm + PT {PETCT_PT_SHAPE} @ {PETCT_PT_SPACING} mm, one frame of "
+          f"reference; SUVbw sphere max {p['sphere_suv_max']:.3f} / mean {p['sphere_suv_mean']:.3f}, "
+          f"background {p['background_suv_mean']:.3f} (decay factor {p['decay_factor']:.5f})")
+
+
+def verify_petct(fixture: str, out_dir: Path, exp: dict, hu: np.ndarray, stored: np.ndarray, pt_geo: CTGeometry) -> None:
+    ct_files = sorted((out_dir / "dicom" / "ct").glob("ct_*.dcm"))
+    pt_files = sorted((out_dir / "dicom" / "pt").glob("pt_*.dcm"))
+    assert len(ct_files) == PETCT_CT_SHAPE[2] and len(pt_files) == PETCT_PT_SHAPE[2], (len(ct_files), len(pt_files))
+    c0, p0 = pydicom.dcmread(ct_files[0]), pydicom.dcmread(pt_files[0])
+    assert c0.FrameOfReferenceUID == p0.FrameOfReferenceUID == exp["frame_of_reference_uid"]
+    assert c0.StudyInstanceUID == p0.StudyInstanceUID and c0.SeriesInstanceUID != p0.SeriesInstanceUID
+    assert c0.Modality == "CT" and c0.SOPClassUID == CTImageStorage
+    assert p0.Modality == "PT" and p0.SOPClassUID == "1.2.840.10008.5.1.4.1.1.128"
+    assert str(c0.PatientName) == str(p0.PatientName) == PETCT_PATIENT[0] and c0.PatientID == p0.PatientID == PETCT_PATIENT[1]
+    assert p0.Units == "BQML" and p0.DecayCorrection == "START" and list(p0.CorrectedImage) == ["DECY", "ATTN"]
+    assert float(p0.PatientWeight) == PETCT_WEIGHT_KG and p0.SeriesDate == p0.AcquisitionDate == DATE
+    rp = p0.RadiopharmaceuticalInformationSequence[0]
+    assert float(rp.RadionuclideTotalDose) == PETCT_DOSE_BQ and float(rp.RadionuclideHalfLife) == PETCT_HALF_LIFE_S
+    assert rp.RadionuclideCodeSequence[0].CodeValue == "C-111A1" and rp.RadionuclideCodeSequence[0].CodingSchemeDesignator == "SRT"
+    assert "FrameReferenceTime" in p0 and int(p0.ActualFrameDuration) == PETCT_FRAME_DURATION_MS
+    # SUVbw recomputed from the headers alone must reproduce expected.json
+    for block, scan_time in ((exp["suv_bw"]["primary"], str(p0.SeriesTime)),
+                             (exp["suv_bw"]["alternative_acquisition_time"], str(p0.AcquisitionTime))):
+        df = decay_factor(scan_time, str(rp.RadiopharmaceuticalStartTime), float(rp.RadionuclideHalfLife))
+        assert np.isclose(df, block["decay_factor"]), (df, block["decay_factor"])
+    df = decay_factor(str(p0.SeriesTime), str(rp.RadiopharmaceuticalStartTime), float(rp.RadionuclideHalfLife))
+    factor = float(p0.PatientWeight) * 1000.0 / (float(rp.RadionuclideTotalDose) * df)
+    vol = np.stack([pydicom.dcmread(f).pixel_array for f in pt_files])
+    assert vol.dtype == np.uint16 and np.array_equal(vol, stored), f"{fixture}: PT round trip changed stored values"
+    suv = (vol.astype(np.float64) * float(p0.RescaleSlope) + float(p0.RescaleIntercept)) * factor
+    pbody, psphere = petct_masks(pt_geo)
+    prim = exp["suv_bw"]["primary"]
+    assert np.isclose(suv[psphere].max(), prim["sphere_suv_max"]) and np.isclose(suv[pbody & ~psphere].mean(), prim["background_suv_mean"])
+    assert abs(suv[psphere].max() - PETCT_SUV_HOT) < 0.15, suv[psphere].max()
+    assert abs(suv[psphere].mean() - PETCT_SUV_HOT) < 0.05, suv[psphere].mean()
+    assert abs(suv[pbody & ~psphere].mean() - PETCT_SUV_BACKGROUND) < 0.01, suv[pbody & ~psphere].mean()
+    assert suv[~pbody].mean() < 0.05
+    ct_vol = np.stack([pydicom.dcmread(f).pixel_array.astype(np.int32) + RESCALE_INTERCEPT for f in ct_files])
+    assert np.array_equal(ct_vol, hu), f"{fixture}: CT round trip changed HU"
+    # SimpleITK: both series span the same physical box; the sphere centre lands on the CT lesion and the PET hot spot
+    imgs = {}
+    for name in ("ct", "pt"):
+        reader = sitk.ImageSeriesReader()
+        reader.SetFileNames(sitk.ImageSeriesReader.GetGDCMSeriesFileNames(str(out_dir / "dicom" / name)))
+        imgs[name] = reader.Execute()
+    assert imgs["ct"].GetSize() == PETCT_CT_SHAPE and imgs["pt"].GetSize() == PETCT_PT_SHAPE
+    assert np.allclose(imgs["ct"].GetSpacing(), PETCT_CT_SPACING) and np.allclose(imgs["pt"].GetSpacing(), PETCT_PT_SPACING)
+    boxes = []
+    for img in imgs.values():
+        assert np.allclose(img.GetDirection(), np.eye(3).ravel(), atol=1e-6)
+        lo = np.array(img.GetOrigin()) - np.array(img.GetSpacing()) / 2
+        boxes.append((lo, lo + np.array(img.GetSize()) * np.array(img.GetSpacing())))
+    assert np.allclose(boxes[0][0], boxes[1][0], atol=1e-6) and np.allclose(boxes[0][1], boxes[1][1], atol=1e-6), boxes
+    assert np.allclose(boxes[0][1] - boxes[0][0], exp["physical_extent_mm_xyz"])
+    ci = imgs["ct"].TransformPhysicalPointToIndex(PETCT_SPHERE_CENTRE_LPS)
+    pi = imgs["pt"].TransformPhysicalPointToIndex(PETCT_SPHERE_CENTRE_LPS)
+    assert hu[ci[2], ci[1], ci[0]] > 30 and suv[pi[2], pi[1], pi[0]] > 7.5, (hu[ci[2], ci[1], ci[0]], suv[pi[2], pi[1], pi[0]])
+    assert np.isclose(suv[pi[2], pi[1], pi[0]], float(sitk.GetArrayFromImage(imgs["pt"])[pi[2], pi[1], pi[0]]) * factor)
+
+
+# ----------------------------------------------------------------------------
+# DX JPEG Baseline (Process 1) + uncompressed twin
+# ----------------------------------------------------------------------------
+def gen_dx_jpeg(out_root: Path, rng: np.random.Generator) -> bool:
+    fixture = "synth-dx-jpeg"
+    out_dir = out_root / fixture
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        print(f"  {fixture}: SKIPPED (Pillow not importable: {exc}); install with `uv pip install pillow`")
+        return False
+    from pydicom.encaps import encapsulate, generate_frames
+    rows = cols = 512
+    quality = 90
+    values = {"air": 25, "soft_tissue": 150, "lung": 45, "rib": 120, "mediastinum": 215, "heart": 205}
+    yy, xx = np.mgrid[0:rows, 0:cols]
+
+    def ellipse(cx: float, cy: float, rx: float, ry: float) -> np.ndarray:
+        return ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 <= 1.0
+
+    img = np.full((rows, cols), values["air"], dtype=np.int32)
+    img[ellipse(256, 270, 235, 250)] = values["soft_tissue"]                    # thorax
+    lungs = ellipse(168, 250, 88, 145) | ellipse(344, 250, 88, 145)
+    img[lungs] = values["lung"]
+    ribs = np.zeros_like(lungs)
+    for k in range(7):                                                          # 7 rib pairs, gently curved
+        ribs |= np.abs(yy - (118 + 42 * k + 0.0025 * (xx - 256) ** 2)) <= 4
+    img[lungs & ribs] = values["rib"]
+    img[(np.abs(xx - 256) <= 40) & (yy >= 60) & (yy <= 470)] = values["mediastinum"]
+    img[ellipse(236, 335, 82, 68)] = values["heart"]
+    img += rng.integers(-6, 7, img.shape)
+    px = np.clip(img, 0, 255).astype(np.uint8)
+
+    buf = io.BytesIO()
+    Image.fromarray(px).save(buf, format="JPEG", quality=quality)
+    jpeg = buf.getvalue()
+    decoded = np.asarray(Image.open(io.BytesIO(jpeg)))
+    assert decoded.shape == (rows, cols) and decoded.dtype == np.uint8
+
+    def dx_dataset(key: str, series_number: int, desc: str) -> Dataset:
+        ds = base_dataset(fixture, DigitalXRayImageStorageForPresentation, uid(fixture, key), "DX", series_number, desc)
+        ds.ImageType = ["ORIGINAL", "PRIMARY"]
+        ds.PresentationIntentType = "FOR PRESENTATION"
+        ds.InstanceNumber = 1
+        ds.PatientOrientation = ["L", "F"]
+        ds.ViewPosition = "PA"
+        ds.BodyPartExamined = "CHEST"
+        ds.ImagerPixelSpacing = [0.15, 0.15]
+        ds.PixelSpacing = [0.15, 0.15]
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        ds.Rows, ds.Columns = rows, cols
+        ds.BitsAllocated, ds.BitsStored, ds.HighBit = 8, 8, 7
+        ds.PixelRepresentation = 0
+        ds.PixelIntensityRelationship = "LOG"
+        ds.PixelIntensityRelationshipSign = 1
+        ds.RescaleIntercept = 0
+        ds.RescaleSlope = 1
+        ds.RescaleType = "US"
+        ds.WindowCenter = 128
+        ds.WindowWidth = 256
+        ds.BurnedInAnnotation = "NO"
+        return ds
+
+    ds = dx_dataset("dx-jpeg", 1, "synth DX JPEG baseline")
+    ds.file_meta.TransferSyntaxUID = JPEGBaseline8Bit
+    ds.LossyImageCompression = "01"
+    ds.LossyImageCompressionRatio = round(rows * cols / len(jpeg), 2)
+    ds.LossyImageCompressionMethod = "ISO_10918_1"
+    ds.PixelData = encapsulate([jpeg])
+    ds["PixelData"].is_undefined_length = True
+    save(ds, out_dir / f"{fixture}.dcm")
+    twin = dx_dataset("dx-uncompressed", 2, "synth DX uncompressed twin")
+    twin.LossyImageCompression = "00"
+    twin.PixelData = px.tobytes()
+    save(twin, out_dir / "synth-dx-uncompressed.dcm")
+
+    rois = {"lung_left_of_image": ([220, 252], [150, 182]), "mediastinum": ([220, 252], [240, 272])}
+
+    def roi_mean(a: np.ndarray, r: tuple[list[int], list[int]]) -> float:
+        return float(a[r[0][0]:r[0][1], r[1][0]:r[1][1]].mean())
+
+    diff = np.abs(decoded.astype(np.int32) - px.astype(np.int32))
+    exp = {
+        "fixture": fixture, "rows": rows, "columns": cols, "bits_allocated": 8, "photometric_interpretation": "MONOCHROME2",
+        "sop_class_uid": DigitalXRayImageStorageForPresentation, "transfer_syntax_uid": JPEGBaseline8Bit,
+        "jpeg_encoder": "Pillow, grayscale, quality 90", "jpeg_byte_length": len(jpeg),
+        "imager_pixel_spacing_mm": [0.15, 0.15], "window_center": 128, "window_width": 256,
+        "phantom_values": dict(values, noise_uniform_range=[-6, 6]),
+        "rois": {name: {"rows_half_open": r[0], "cols_half_open": r[1],
+                        "mean_decoded_jpeg": roi_mean(decoded, r), "mean_uncompressed": roi_mean(px, r)}
+                 for name, r in rois.items()},
+        "max_abs_diff_vs_uncompressed": int(diff.max()),
+        "mean_abs_diff_vs_uncompressed": float(diff.mean()),
+        "files": {"jpeg": f"{fixture}.dcm", "uncompressed": "synth-dx-uncompressed.dcm"},
+        "expected_rendering": "MONOCHROME2 chest-like phantom: dark lungs with brighter curved ribs, bright central "
+                              "mediastinum with a heart shadow, dark air around the thorax. The JPEG file must look the "
+                              "same as the uncompressed twin (ROI means within ~1 grey level).",
+    }
+    (out_dir / "expected.json").write_text(json.dumps(exp, indent=2) + "\n")
+    # verify: pydicom + Pillow decode of the encapsulated frame
+    back = pydicom.dcmread(out_dir / f"{fixture}.dcm")
+    assert back.file_meta.TransferSyntaxUID == JPEGBaseline8Bit and back.SOPClassUID == DigitalXRayImageStorageForPresentation
+    assert back.PhotometricInterpretation == "MONOCHROME2" and back.BitsAllocated == 8 and back.BitsStored == 8
+    assert [float(v) for v in back.ImagerPixelSpacing] == [0.15, 0.15] and back.LossyImageCompression == "01"
+    frame = next(generate_frames(back.PixelData, number_of_frames=1))
+    # odd-length JPEG streams are padded with one trailing NUL to an even fragment length (PS3.5 A.4)
+    assert frame.rstrip(b"\x00") == jpeg.rstrip(b"\x00"), "encapsulated frame differs from the encoded JPEG"
+    direct = np.asarray(Image.open(io.BytesIO(frame)))
+    try:
+        from pydicom.pixels import pixel_array as decode_pixels
+        arr = decode_pixels(back, decoding_plugin="pillow")
+    except Exception as exc:  # noqa: BLE001 - no pillow plugin for this pydicom; decode the frame ourselves
+        print(f"  {fixture}: pydicom pillow decoder unavailable ({exc}); decoding the frame with Pillow directly")
+        arr = direct
+    assert arr.shape == (rows, cols) and arr.dtype == np.uint8 and np.array_equal(arr, direct) and np.array_equal(arr, decoded)
+    unc = pydicom.dcmread(out_dir / "synth-dx-uncompressed.dcm")
+    assert unc.file_meta.TransferSyntaxUID == ExplicitVRLittleEndian and np.array_equal(unc.pixel_array, px)
+    assert int(np.abs(arr.astype(np.int32) - unc.pixel_array.astype(np.int32)).max()) == exp["max_abs_diff_vs_uncompressed"]
+    for name, r in rois.items():
+        assert np.isclose(roi_mean(arr, r), exp["rois"][name]["mean_decoded_jpeg"])
+        assert abs(roi_mean(arr, r) - roi_mean(unc.pixel_array, r)) < 1.0, name
+    assert roi_mean(arr, rois["lung_left_of_image"]) < 100 < 180 < roi_mean(arr, rois["mediastinum"])
+    lung, med = exp["rois"]["lung_left_of_image"]["mean_decoded_jpeg"], exp["rois"]["mediastinum"]["mean_decoded_jpeg"]
+    print(f"  {fixture}: 512x512 8-bit MONOCHROME2 DX, JPEG baseline {len(jpeg)} bytes (q{quality}) + uncompressed twin; "
+          f"lung ROI mean {lung:.2f}, mediastinum ROI mean {med:.2f}, max |diff| vs uncompressed {exp['max_abs_diff_vs_uncompressed']}")
+    return True
+
+
+# ----------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT, help=f"output directory (default {DEFAULT_OUT})")
@@ -646,7 +1074,7 @@ def main(argv: list[str] | None = None) -> int:
     out: Path = args.out
     out.mkdir(parents=True, exist_ok=True)
     want = set(args.only) or {"synth-ct-cube", "synth-anisotropic", "synth-oblique", "synth-mono1", "synth-multiframe",
-                              "synth-rgb", "synth-seg", "synth-rtstruct"}
+                              "synth-rgb", "synth-seg", "synth-rtstruct", "synth-petct", "synth-dx-jpeg"}
     if want & {"synth-seg", "synth-rtstruct"}:
         want.add("synth-ct-cube")
     rng = np.random.default_rng(SEED)
@@ -672,6 +1100,11 @@ def main(argv: list[str] | None = None) -> int:
             skipped.append("synth-seg")
     if "synth-rtstruct" in want:
         gen_rtstruct(out, ct_datasets, geo)
+    if "synth-petct" in want:
+        gen_petct(out, np.random.default_rng(SEED + 3))
+    if "synth-dx-jpeg" in want:
+        if not gen_dx_jpeg(out, np.random.default_rng(SEED + 4)):
+            skipped.append("synth-dx-jpeg")
 
     checksums = {p.relative_to(out).as_posix(): sha256(p) for p in sorted(out.rglob("*"))
                  if p.is_file() and p.name != "checksums.json"}
