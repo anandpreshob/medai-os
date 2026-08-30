@@ -3,6 +3,13 @@
 Date: 2026-08-30 · Branch analysed: `feat/agent-window` (+ uncommitted Vertex work)
 Companion docs: [Tier 1 verification matrix](02_TIER1_VERIFICATION_MATRIX.md) · [Sample data manifest](03_SAMPLE_DATA_MANIFEST.md)
 
+> **Status 2026-08-30 (later the same day):** Phase 0 and the core of Phase 1 are done on
+> `feat/tier1-viewer`. The Vertex work is parked on `wip/cloud-vertex`. A new Tier 1 viewer
+> (`apps/viewer2`, Cornerstone3D 5.8) replaces the hand-rolled DICOM path; the command
+> registry exists in `packages/core`; fixtures are generated/fetched by `scripts/sample-data`;
+> 50 Playwright tests drive the generated matrix (30/35 P0 rows verified). Remaining P0:
+> PET SUV pre-scaling fixture, PET/CT fusion, JPEG CR/DX fixture, DICOM-SEG and RTSTRUCT display.
+
 ---
 
 ## 0. TL;DR
