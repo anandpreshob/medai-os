@@ -61,12 +61,18 @@ export function suvFactorsFromNaturalized(nat: Nat): Record<string, number> | nu
   };
   const required: (keyof InstanceMetadata)[] = ['CorrectedImage', 'Units', 'DecayCorrection', 'RadionuclideTotalDose', 'RadionuclideHalfLife', 'PatientWeight', 'SeriesDate', 'SeriesTime', 'AcquisitionDate', 'AcquisitionTime'];
   if (required.some((k) => inst[k] === undefined) || !inst.PatientWeight) return null;
+  // calculate-suv warns (per image) when lbm/bsa factors cannot be derived; only suvbw matters here.
+  const warn = console.warn;
+  console.warn = () => undefined;
   try {
     const [f] = calculateSUVScalingFactors([inst as InstanceMetadata]);
     return f ? (f as unknown as Record<string, number>) : null;
   } catch (e) {
+    console.warn = warn;
     console.warn('[suv] cannot compute SUV factors:', e instanceof Error ? e.message : e);
     return null;
+  } finally {
+    console.warn = warn;
   }
 }
 

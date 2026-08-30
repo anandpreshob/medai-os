@@ -200,6 +200,72 @@ export const VIEWER_COMMANDS: CommandDefinition<any, any>[] = [
     },
   },
   {
+    id: 'object.show',
+    title: 'Show object overlay',
+    description: 'Overlay a DICOM-SEG (labelmap) or RTSTRUCT (contours) object from the open study on every viewport showing its referenced series.',
+    category: 'overlay',
+    input: { type: 'object', properties: { seriesId: { type: 'string' } }, required: ['seriesId'], additionalProperties: false },
+    run: async ({ seriesId }: { seriesId: string }) => {
+      const s = useSession.getState();
+      const object = getSeries(seriesId);
+      if (!object || !s.study) throw new Error(`Unknown series ${seriesId}`);
+      if (!object.isDerived) throw new Error(`${object.description} is an image series; use viewer.showSeries`);
+      const h = await viewports.showObject(object, s.study);
+      s.bump();
+      return { kind: h.kind, referencedSeriesId: h.referencedSeriesId, segments: h.segments };
+    },
+  },
+  {
+    id: 'object.hide',
+    title: 'Hide object overlay',
+    description: 'Remove a SEG/RTSTRUCT overlay from all viewports.',
+    category: 'overlay',
+    input: { type: 'object', properties: { seriesId: { type: 'string' } }, required: ['seriesId'], additionalProperties: false },
+    run: ({ seriesId }: { seriesId: string }) => {
+      viewports.hideObject(seriesId);
+      useSession.getState().bump();
+    },
+  },
+  {
+    id: 'viewer.fuse',
+    title: 'Fuse series',
+    description: 'Overlay another series of the same study (e.g. PET over CT) on the active MPR viewport with a colour map; SUV-scaled PET gets a 0–8 SUV window.',
+    category: 'viewer',
+    input: {
+      type: 'object',
+      properties: {
+        seriesId: { type: 'string' },
+        colormap: { type: 'string', description: 'vtk colour map name, e.g. hsv, jet, Inferno (matplotlib)' },
+        opacity: { type: 'number', minimum: 0, maximum: 1 },
+        allSlots: { type: 'boolean', description: 'Apply to every MPR viewport showing the same base series (default true)' },
+      },
+      required: ['seriesId'],
+      additionalProperties: false,
+    },
+    run: async ({ seriesId, colormap, opacity, allSlots = true }: { seriesId: string; colormap?: string; opacity?: number; allSlots?: boolean }) => {
+      const s = useSession.getState();
+      const overlay = getSeries(seriesId);
+      if (!overlay || overlay.isDerived) throw new Error(`Unknown image series ${seriesId}`);
+      const base = s.slots[s.activeSlot];
+      const targets = allSlots ? s.slots.map((id, i) => (id === base && viewports.kindOf(i) === 'volume' ? i : -1)).filter((i) => i >= 0) : [s.activeSlot];
+      if (!targets.length) throw new Error('Fusion needs an MPR (volume) viewport — switch to the MPR layout first');
+      for (const i of targets) await viewports.fuse(i, overlay, { colormap, opacity });
+      s.bump();
+    },
+  },
+  {
+    id: 'viewer.unfuse',
+    title: 'Remove fusion',
+    description: 'Remove the fused overlay from the active viewport (and its MPR siblings).',
+    category: 'viewer',
+    input: { type: 'object', additionalProperties: false },
+    run: () => {
+      const s = useSession.getState();
+      for (let i = 0; i < 4; i++) if (viewports.fusionOf(i)) viewports.unfuse(i);
+      s.bump();
+    },
+  },
+  {
     id: 'measure.list',
     title: 'List measurements',
     description: 'List every measurement in the open study with its tool, points (world mm) and computed statistics (length in mm, area in mm², mean/std/min/max in modality units).',

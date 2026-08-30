@@ -90,6 +90,8 @@ function ViewportPane({ slot }: { slot: number }) {
   const loadError = viewports.loadError(slot);
   const progress = viewports.progress(slot);
   const suv = series?.modality === 'PT' ? (viewports.isSuvScaled(slot) ? 'SUV (bw)' : 'raw counts — no SUV scaling') : '';
+  const fusion = viewports.fusionOf(slot);
+  const fusedSeries = fusion ? getSeries(fusion.seriesId) : undefined;
   void tick;
 
   return (
@@ -104,6 +106,7 @@ function ViewportPane({ slot }: { slot: number }) {
       data-window-width={wl ? Math.round(wl.width) : ''}
       data-window-center={wl ? Math.round(wl.center) : ''}
       data-volume-progress={progress}
+      data-fused={fusion?.seriesId ?? ''}
     >
       <div ref={ref} className="cs-viewport" onContextMenu={(e) => e.preventDefault()} />
       {series && overlays.patientInfo && study && (
@@ -117,6 +120,7 @@ function ViewportPane({ slot }: { slot: number }) {
           <div className="overlay-corner right-2 top-1.5 text-right" data-testid="overlay-top-right">
             {series.modality} {series.description}
             {series.isDerived ? `\n${series.derivedKind}` : ''}
+            {fusedSeries ? `\n+ ${fusedSeries.modality} ${fusedSeries.description}` : ''}
           </div>
         </>
       )}

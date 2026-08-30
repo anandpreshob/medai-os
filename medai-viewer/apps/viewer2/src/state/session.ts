@@ -81,7 +81,10 @@ interface SessionState {
   cineFps: number;
   loading: { active: boolean; message: string; progress: number };
   error: string | null;
+  /** Incremented when engine-only state (overlays, fusion) changes so panels re-read it. */
+  engineTick: number;
 
+  bump: () => void;
   setStudy: (study: OpenStudy | null) => void;
   addSeries: (series: OpenSeries) => void;
   setSlot: (slot: number, displaySetId: string | null) => void;
@@ -106,10 +109,12 @@ const initial = {
   cineFps: 15,
   loading: { active: false, message: '', progress: 0 },
   error: null,
+  engineTick: 0,
 };
 
 export const useSession = create<SessionState>((set) => ({
   ...initial,
+  bump: () => set((s) => ({ engineTick: s.engineTick + 1 })),
   setStudy: (study) => set({ study, slots: [null, null, null, null], activeSlot: 0 }),
   addSeries: (series) =>
     set((s) => {

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-30T06:54:39.520Z",
-  "commit": "9b39ec5",
+  "generatedAt": "2026-08-30T07:11:19.846Z",
+  "commit": "f79a4a7",
   "counts": {
-    "passed": 53,
+    "passed": 56,
     "failed": 0,
     "skipped": 0
   },
@@ -538,6 +538,16 @@
       "status": "verified",
       "tests": [
         {
+          "title": "PET fuses over the CT in MPR with a colour map and can be removed",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "PET fuses over the CT in MPR with a colour map and can be removed",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
           "title": "PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available",
           "file": "fixtures/synth-petct.spec.ts",
           "status": "passed"
@@ -556,8 +566,19 @@
       "priority": "P0",
       "default": "absent",
       "note": "side-by-side works; blended overlay not built yet",
-      "status": "absent",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "PET fuses over the CT in MPR with a colour map and can be removed",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "PET fuses over the CT in MPR with a colour map and can be removed",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "crdx",
@@ -950,6 +971,16 @@
       "status": "verified",
       "tests": [
         {
+          "title": "labelmap renders over the cuboid on the stack and in MPR, and can be hidden",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "labelmap renders over the cuboid on the stack and in MPR, and can be hidden",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
           "title": "SEG and RTSTRUCT are listed as objects, the CT is displayed",
           "file": "fixtures/synth-geometry.spec.ts",
           "status": "passed"
@@ -968,8 +999,19 @@
       "priority": "P0",
       "default": "absent",
       "note": "next: @cornerstonejs/adapters labelmap",
-      "status": "absent",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "labelmap renders over the cuboid on the stack and in MPR, and can be hidden",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "labelmap renders over the cuboid on the stack and in MPR, and can be hidden",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "rtstruct-listed",
@@ -979,6 +1021,16 @@
       "default": "untested",
       "status": "verified",
       "tests": [
+        {
+          "title": "contours render on the referenced CT stack",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "contours render on the referenced CT stack",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
         {
           "title": "rtstruct.dcm — RTSTRUCT",
           "file": "fixtures/pydicom-corpus.spec.ts",
@@ -1018,8 +1070,19 @@
       "priority": "P0",
       "default": "absent",
       "note": "next: @cornerstonejs/adapters RTSS",
-      "status": "absent",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "contours render on the referenced CT stack",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "contours render on the referenced CT stack",
+          "file": "fixtures/objects.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "rtdose-listed",

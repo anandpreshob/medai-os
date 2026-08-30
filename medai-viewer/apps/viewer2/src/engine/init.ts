@@ -30,6 +30,7 @@ import {
   OrientationMarkerTool,
   ScaleOverlayTool,
   ReferenceLinesTool,
+  PlanarFreehandContourSegmentationTool,
 } from '@cornerstonejs/tools';
 import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader';
 import { cornerstoneNiftiImageLoader, init as niftiInit } from '@cornerstonejs/nifti-volume-loader';
@@ -56,6 +57,7 @@ export const ALL_TOOLS = [
   OrientationMarkerTool,
   ScaleOverlayTool,
   ReferenceLinesTool,
+  PlanarFreehandContourSegmentationTool,
 ];
 
 let done: Promise<void> | undefined;

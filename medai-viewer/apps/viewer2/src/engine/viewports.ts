@@ -1,4 +1,4 @@
-import { RenderingEngine, Enums, cache, eventTarget, imageLoader, utilities, volumeLoader, type Types } from '@cornerstonejs/core';
+import { RenderingEngine, Enums, cache, eventTarget, imageLoader, metaData, utilities, volumeLoader, type Types } from '@cornerstonejs/core';
 import {
   ToolGroupManager,
   Enums as ToolEnums,
@@ -20,10 +20,22 @@ import {
   ProbeTool,
   ArrowAnnotateTool,
   PlanarFreehandROITool,
+  PlanarFreehandContourSegmentationTool,
   type Types as ToolTypes,
 } from '@cornerstonejs/tools';
-import type { OpenSeries, ToolName } from '../state/session';
+import type { OpenSeries, OpenStudy, ToolName } from '../state/session';
 import { md } from './metadata';
+import {
+  attachToViewport,
+  createRtstructContours,
+  createSegLabelmap,
+  destroyObject,
+  detachFromViewport,
+  normalsAligned,
+  removeAllObjects,
+  resolveReferencedSeries,
+  type ObjectHandle,
+} from './objects';
 
 export type SlotKind = 'stack' | 'volume' | '3d';
 export type SlotOrientation = 'axial' | 'sagittal' | 'coronal';
@@ -41,6 +53,8 @@ interface SlotState {
   displaySetId: string | null;
   pending?: { series: OpenSeries; opts: ShowOptions };
   resize?: ResizeObserver;
+  /** PET (or other) volume fused over the base volume in this slot. */
+  fusion?: { seriesId: string; volumeId: string; actorUID: string };
 }
 
 const { MouseBindings, KeyboardBindings } = ToolEnums;
@@ -232,6 +246,7 @@ export class ViewportManager {
       (re.getViewport(s.viewportId) as Types.IVolumeViewport).setOrientation(ORIENTATION_AXIS[orientation]);
       s.orientation = orientation;
     }
+    if (s.displaySetId !== series.id) s.fusion = undefined;
     s.displaySetId = series.id;
 
     if (kind === 'stack') {
@@ -257,6 +272,7 @@ export class ViewportManager {
       vv.render();
     }
     this.applyPrimaryTool();
+    this.reapplyObjects(i);
     this.emit(i);
   }
 
@@ -264,6 +280,7 @@ export class ViewportManager {
     const s = this.slots.get(i);
     this.generation.set(i, (this.generation.get(i) ?? 0) + 1);
     if (!s?.kind) return;
+    s.fusion = undefined;
     this.toolGroup(s.kind).removeViewports(ENGINE_ID, s.viewportId);
     this.engine().disableElement(s.viewportId);
     s.kind = null;
@@ -521,7 +538,7 @@ export class ViewportManager {
   listAnnotations(): MeasurementSummary[] {
     const all = annotation.state.getAllAnnotations() as unknown as RawAnnotation[];
     return all
-      .filter((a) => a?.metadata?.toolName && !/OrientationMarker|ScaleOverlay|ReferenceLines|Crosshairs/.test(a.metadata.toolName))
+      .filter((a) => a?.metadata?.toolName && !/OrientationMarker|ScaleOverlay|ReferenceLines|Crosshairs|ContourSegmentation/.test(a.metadata.toolName))
       .map((a) => {
         const statsByTarget = a.data?.cachedStats ?? {};
         const first = Object.values(statsByTarget)[0] ?? {};
@@ -601,6 +618,8 @@ export class ViewportManager {
     tg.addTool(PanTool.toolName);
     tg.addTool(ZoomTool.toolName);
     ANNOTATION_TOOLS.forEach((t) => tg.addTool(TOOL_CLASS[t].toolName));
+    tg.addTool(PlanarFreehandContourSegmentationTool.toolName);
+    tg.setToolPassive(PlanarFreehandContourSegmentationTool.toolName);
     if (kind === 'volume') {
       tg.addTool(CrosshairsTool.toolName, { viewportIndicators: false, autoPan: { enabled: false, panSize: 10 } });
       tg.setToolDisabled(CrosshairsTool.toolName);
@@ -616,8 +635,144 @@ export class ViewportManager {
   /** Drop everything shown and every cached volume/image (call when opening a different study). */
   clearAll(): void {
     for (const i of [...this.slots.keys()]) this.clear(i);
+    for (const h of this.objects.values()) destroyObject(h);
+    this.objects.clear();
+    removeAllObjects();
     this.volumeIds.clear();
     cache.purgeCache();
+  }
+
+  // ---------- derived objects (SEG / RTSTRUCT) ----------
+
+  private objects = new Map<string, ObjectHandle>();
+
+  /** Objects currently shown, by series id. */
+  shownObjects(): ObjectHandle[] {
+    return [...this.objects.values()];
+  }
+
+  isObjectShown(seriesId: string): boolean {
+    return this.objects.has(seriesId);
+  }
+
+  /** Build (once) and attach a SEG/RTSTRUCT to every viewport that shows its referenced series. */
+  async showObject(object: OpenSeries, study: OpenStudy): Promise<ObjectHandle> {
+    let handle = this.objects.get(object.id);
+    if (!handle) {
+      const referenced = resolveReferencedSeries(object, study);
+      if (!referenced) throw new Error(`${object.description}: no image series to overlay on`);
+      if (object.derivedKind === 'SEG') handle = await createSegLabelmap(object, referenced);
+      else if (object.derivedKind === 'RTSTRUCT') handle = createRtstructContours(object, referenced);
+      else throw new Error(`${object.derivedKind ?? 'This'} objects cannot be displayed yet`);
+      this.objects.set(object.id, handle);
+    }
+    for (const i of this.slots.keys()) this.reapplyObjects(i);
+    return handle;
+  }
+
+  hideObject(seriesId: string): void {
+    const handle = this.objects.get(seriesId);
+    if (!handle) return;
+    for (const s of this.slots.values()) if (s.kind) detachFromViewport(handle, s.viewportId);
+    destroyObject(handle);
+    this.objects.delete(seriesId);
+    this.re?.render();
+  }
+
+  /** Attach every shown object whose referenced series is displayed in this slot. */
+  private reapplyObjects(i: number): void {
+    const s = this.slots.get(i);
+    if (!s?.kind || s.kind === '3d') return;
+    const vp = this.viewport(i);
+    for (const h of this.objects.values()) {
+      if (h.referencedSeriesId !== s.displaySetId) continue;
+      if (h.kind === 'RTSTRUCT' && s.kind === 'volume' && vp && !normalsAligned(h.contourPlaneNormal, vp.getCamera().viewPlaneNormal as Types.Point3 | undefined)) {
+        continue; // out-of-plane contour rendering needs PolySeg; skip rather than throw
+      }
+      try {
+        attachToViewport(h, s.viewportId);
+      } catch (e) {
+        console.warn(`[objects] could not attach ${h.kind} to ${s.viewportId}:`, e);
+      }
+    }
+    vp?.render();
+  }
+
+  // ---------- fusion ----------
+
+  /** Overlay a second volume (typically PET) on a volume viewport with a colour map. */
+  async fuse(i: number, overlay: OpenSeries, opts: { colormap?: string; opacity?: number } = {}): Promise<void> {
+    const s = this.slots.get(i);
+    const vp = this.viewport(i);
+    if (!s?.kind || !vp) throw new Error('No image in that viewport');
+    if (s.kind !== 'volume') throw new Error('Fusion needs an MPR (volume) viewport — switch to the MPR layout first');
+    if (s.displaySetId === overlay.id) throw new Error('Pick a different series to fuse over the one shown');
+    const vv = vp as Types.IVolumeViewport;
+    if (s.fusion) {
+      vv.removeVolumeActors([s.fusion.actorUID], true);
+      s.fusion = undefined;
+    }
+    const volumeId = await this.ensureVolume(overlay);
+    const actorUID = `fusion-${i}-${Date.now().toString(36)}`;
+    // MIP blending: a thin MPR slab composited with the default ray-casting integrates opacity over ~0 mm,
+    // so even opacity 0.99 barely tints. MIP applies the transfer function once per pixel.
+    await vv.addVolumes([{ volumeId, actorUID, visibility: true, blendMode: Enums.BlendModes.MAXIMUM_INTENSITY_BLEND }], true);
+    vv.setBlendMode(Enums.BlendModes.MAXIMUM_INTENSITY_BLEND, [actorUID], false);
+    s.fusion = { seriesId: overlay.id, volumeId, actorUID };
+    // Streamed volumes bypass the image cache, so decide SUV from the metadata the loader scales with.
+    const mid = overlay.imageIds[Math.floor(overlay.imageIds.length / 2)];
+    const scaling = mid ? (metaData.get('scalingModule', mid) as { suvbw?: number } | undefined) : undefined;
+    const suv = overlay.modality === 'PT' && Boolean(scaling?.suvbw);
+    const voiRange = suv ? { lower: 0, upper: 8 } : this.rangeOfVolume(volumeId);
+    // Opacity ramp: background transparent, hot spots opaque — a flat opacity just tints the anatomy.
+    const lower = voiRange?.lower ?? 0;
+    const upper = voiRange?.upper ?? 1;
+    const peak = opts.opacity ?? 0.85;
+    const span = upper - lower;
+    const opacity = [
+      { value: lower, opacity: 0 },
+      { value: lower + 0.25 * span, opacity: 0 },
+      { value: lower + 0.5 * span, opacity: 0.55 * peak },
+      { value: upper, opacity: peak },
+    ];
+    vv.setProperties({ colormap: { name: opts.colormap ?? 'jet', opacity }, ...(voiRange ? { voiRange } : {}) }, volumeId);
+    vv.render();
+    this.emit(i);
+  }
+
+  unfuse(i: number): void {
+    const s = this.slots.get(i);
+    const vp = this.viewport(i);
+    if (!s?.fusion || !vp || s.kind !== 'volume') return;
+    (vp as Types.IVolumeViewport).removeVolumeActors([s.fusion.actorUID], true);
+    s.fusion = undefined;
+    vp.render();
+    this.emit(i);
+  }
+
+  fusionOf(i: number): { seriesId: string } | undefined {
+    return this.slots.get(i)?.fusion;
+  }
+
+  private rangeOfVolume(volumeId: string): { lower: number; upper: number } | undefined {
+    let data: ArrayLike<number> | undefined;
+    try {
+      data = cache.getVolume(volumeId)?.voxelManager?.getScalarData?.() as ArrayLike<number> | undefined;
+    } catch {
+      return undefined; // still streaming; the header VOI applies until then
+    }
+    if (!data || data.length === 0) return undefined;
+    let min = Infinity;
+    let max = -Infinity;
+    const step = Math.max(1, Math.floor(data.length / 1_000_000));
+    for (let k = 0; k < data.length; k += step) {
+      const v = data[k];
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return undefined;
+    // Ignore the lowest 30 % so background does not tint the anatomy.
+    return { lower: min + 0.3 * (max - min), upper: max };
   }
 }
 

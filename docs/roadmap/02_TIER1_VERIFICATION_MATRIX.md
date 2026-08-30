@@ -1,8 +1,8 @@
 # Tier 1 Verification Matrix — medical imaging viewer (`apps/viewer2`)
 
-Generated 2026-08-30T06:54:39.520Z from commit `9b39ec5` by `apps/viewer2/scripts/render-matrix.mjs`. **Do not edit by hand** — change `e2e/matrix-rows.json` or the tests.
+Generated 2026-08-30T07:11:19.846Z from commit `f79a4a7` by `apps/viewer2/scripts/render-matrix.mjs`. **Do not edit by hand** — change `e2e/matrix-rows.json` or the tests.
 
-Playwright run: 53 passed, 0 failed, 0 skipped.
+Playwright run: 56 passed, 0 failed, 0 skipped.
 
 ## How to read this
 
@@ -44,8 +44,8 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 | Enhanced MR multi-frame (incl. RLE, J2K, big-endian encodings) | P0 | ✅ | emri_small.dcm — Enhanced MR multi-frame; emri_small.dcm — Enhanced MR multi-frame; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_big_endian.dcm — Enhanced MR, big endian; emri_small_big_endian.dcm — Enhanced MR, big endian; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K |  |
 | MR multi-sequence hanging (T1/T2/FLAIR side by side) | P1 | ⚫ | — | 1x2/2x2 layouts exist; no automatic hanging protocol |
 | PET without SUV scaling: detected, relative presets, SUV presets refused | P0 | ✅ | COMUNIX: PET and CT side by side; COMUNIX: PET and CT side by side |  |
-| PET with SUV(bw) pre-scaling (weight, dose, timing present) | P0 | ✅ | PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available; PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available | loader supports it; no public fixture with complete PET header in the P0 set (AutoPET is manual) |
-| PET/CT fusion overlay | P0 | ⚫ | — | side-by-side works; blended overlay not built yet |
+| PET with SUV(bw) pre-scaling (weight, dose, timing present) | P0 | ✅ | PET fuses over the CT in MPR with a colour map and can be removed; PET fuses over the CT in MPR with a colour map and can be removed; PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available; PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available | loader supports it; no public fixture with complete PET header in the P0 set (AutoPET is manual) |
+| PET/CT fusion overlay | P0 | ✅ | PET fuses over the CT in MPR with a colour map and can be removed; PET fuses over the CT in MPR with a colour map and can be removed | side-by-side works; blended overlay not built yet |
 | CR / DX projection radiograph | P0 | ✅ | high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it; decodes the JPEG frame: lungs dark, mediastinum bright; decodes the JPEG frame: lungs dark, mediastinum bright |  |
 | MONOCHROME1 (inverted display, MG-style) | P0 | ✅ | high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it |  |
 | CR / DX with JPEG-compressed pixel data (real-world) | P0 | ✅ | decodes the JPEG frame: lungs dark, mediastinum bright; decodes the JPEG frame: lungs dark, mediastinum bright | codecs verified on the corpus; VinDr-CXR fixture is credentialed (manual) |
@@ -63,10 +63,10 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 | DCE / perfusion 4D | P2 | ⚫ | — |  |
 | Oblique acquisition (rotated IOP): sorting, labels, MPR | P0 | ✅ | sorts and labels correctly and builds an MPR volume; sorts and labels correctly and builds an MPR volume |  |
 | Anisotropic spacing: overlay, scale bar, MPR | P0 | ✅ | reports spacing and thickness and reformats with the right geometry; reports spacing and thickness and reformats with the right geometry |  |
-| DICOM-SEG recognised and listed as an object | P0 | ✅ | SEG and RTSTRUCT are listed as objects, the CT is displayed; SEG and RTSTRUCT are listed as objects, the CT is displayed |  |
-| DICOM-SEG overlay display | P0 | ⚫ | — | next: @cornerstonejs/adapters labelmap |
-| RTSTRUCT recognised and listed as an object | P0 | ✅ | rtstruct.dcm — RTSTRUCT; rtstruct.dcm — RTSTRUCT; HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; SEG and RTSTRUCT are listed as objects, the CT is displayed; SEG and RTSTRUCT are listed as objects, the CT is displayed |  |
-| RTSTRUCT contour display | P0 | ⚫ | — | next: @cornerstonejs/adapters RTSS |
+| DICOM-SEG recognised and listed as an object | P0 | ✅ | labelmap renders over the cuboid on the stack and in MPR, and can be hidden; labelmap renders over the cuboid on the stack and in MPR, and can be hidden; SEG and RTSTRUCT are listed as objects, the CT is displayed; SEG and RTSTRUCT are listed as objects, the CT is displayed |  |
+| DICOM-SEG overlay display | P0 | ✅ | labelmap renders over the cuboid on the stack and in MPR, and can be hidden; labelmap renders over the cuboid on the stack and in MPR, and can be hidden | next: @cornerstonejs/adapters labelmap |
+| RTSTRUCT recognised and listed as an object | P0 | ✅ | contours render on the referenced CT stack; contours render on the referenced CT stack; rtstruct.dcm — RTSTRUCT; rtstruct.dcm — RTSTRUCT; HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; SEG and RTSTRUCT are listed as objects, the CT is displayed; SEG and RTSTRUCT are listed as objects, the CT is displayed |  |
+| RTSTRUCT contour display | P0 | ✅ | contours render on the referenced CT stack; contours render on the referenced CT stack | next: @cornerstonejs/adapters RTSS |
 | RTDOSE listed (overlay is P2) | P2 | ✅ | rtdose.dcm — RTDOSE; rtdose.dcm — RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE |  |
 | RTPLAN listed | P2 | ✅ | rtplan.dcm — RTPLAN; rtplan.dcm — RTPLAN |  |
 | SR listed (rendering is P2) | P2 | ✅ | test-SR.dcm — Structured report; test-SR.dcm — Structured report |  |
@@ -102,8 +102,8 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 
 ## Summary
 
-- Rows: 66 — ✅ 51 · ⚫ 12 · 🟡 3
-- P0 rows: 35 — verified 32, remaining: PET/CT fusion overlay (⚫), DICOM-SEG overlay display (⚫), RTSTRUCT contour display (⚫)
+- Rows: 66 — ✅ 54 · ⚫ 9 · 🟡 3
+- P0 rows: 35 — verified 35, remaining: none
 
 ## Exit criteria for Phase 1
 
