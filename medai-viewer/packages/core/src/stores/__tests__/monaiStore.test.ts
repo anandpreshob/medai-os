@@ -1,6 +1,8 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useMonaiStore, ConnectionStatus } from '../monaiStore';
 import { MonaiLabelClient } from '../../services/MonaiLabelClient';
+import { initFeatures } from '../../features';
 
 // Mock MonaiLabelClient
 vi.mock('../../services/MonaiLabelClient', () => ({
@@ -23,6 +25,8 @@ describe('monaiStore', () => {
   };
 
   beforeEach(() => {
+    // The store refuses to connect unless the feature is enabled at boot.
+    initFeatures({ enabled: ['monai-segmentation'], urls: { monaiServerUrl: 'http://localhost:8002' } });
     // Reset store to initial state before each test
     useMonaiStore.getState().reset();
     vi.clearAllMocks();
