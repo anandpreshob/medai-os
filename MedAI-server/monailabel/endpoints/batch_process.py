@@ -169,6 +169,17 @@ async def run_batch_inference(
         # Update status to running
         await manager.update_job_status(job_id, JobStatus.RUNNING)
 
+        # Dispatch to a managed cloud backend (e.g. Vertex AI) when requested,
+        # either per-job via options.backend or per-deployment via BATCH_BACKEND.
+        # The cloud path writes into this same JobManager, so status polling,
+        # save-pacs, and the Agent contract are unchanged.
+        backend = str(
+            (options or {}).get("backend") or os.environ.get("BATCH_BACKEND") or "local"
+        ).lower()
+        if backend != "local":
+            await _run_cloud_batch_inference(job_id, model, files, prompt, options, backend)
+            return
+
         # Get app instance
         instance: MONAILabelApp = app_instance()
 
@@ -290,6 +301,188 @@ async def run_batch_inference(
 
 
 # ============================================================================
+# Cloud batch inference (Vertex AI / Azure ML / ... via CloudBatchProvider)
+# ============================================================================
+
+def _cloud_dest_dir(job_id: str) -> str:
+    """Persistent local dir for masks downloaded from the cloud. Lives under the
+    mounted predictions volume so save-pacs can read the masks afterwards."""
+    base = os.environ.get("CLOUD_MASKS_DIR") or "/code/predictions/cloud"
+    dest = os.path.join(base, job_id)
+    os.makedirs(dest, exist_ok=True)
+    return dest
+
+
+def _local_nifti_for(datastore, image_id: str) -> str:
+    """Resolve a datastore image id (or path) to a local NIfTI file.
+
+    For the DICOMweb datastore this pulls the series from Orthanc and converts
+    to NIfTI, which also warms the cache that save-pacs' ``_resolve_dicom_dir``
+    relies on later.
+    """
+    if os.path.exists(image_id):
+        return image_id
+    uri = datastore.get_image_uri(image_id)
+    if uri and os.path.exists(uri):
+        return uri
+    raise RuntimeError(f"Could not resolve a local NIfTI for image '{image_id}' (uri={uri!r})")
+
+
+def _geometry_matches(source_nifti: str, mask_nifti: str) -> bool:
+    """Best-effort check that a returned mask shares the source voxel grid."""
+    try:
+        import nibabel as nib
+        import numpy as np
+
+        src = nib.load(source_nifti)
+        msk = nib.load(mask_nifti)
+        return src.shape[:3] == msk.shape[:3] and np.allclose(src.affine, msk.affine, atol=1e-3)
+    except Exception as e:  # noqa: BLE001 - never block on the check itself
+        logger.warning("Geometry check skipped for %s: %s", mask_nifti, e)
+        return True
+
+
+async def _run_cloud_batch_inference(
+    job_id: str,
+    model: str,
+    files: List[str],
+    prompt: str,
+    options: Dict[str, Any],
+    backend: str,
+):
+    """Cloud counterpart of ``run_batch_inference``. Stages inputs to the
+    provider, submits one batch job, polls it into the JobManager, downloads the
+    masks locally, and records them so the existing save-pacs path works."""
+    from monailabel.cloud import CloudJobStatus, StagedImage, get_cloud_provider
+
+    manager = get_manager()
+    job = await manager.get_job(job_id)
+    if not job:
+        logger.error(f"Job {job_id} not found for cloud batch inference")
+        return
+
+    try:
+        provider = get_cloud_provider(backend)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Cloud provider '%s' init failed", backend)
+        job.error = f"Cloud backend init failed: {e}"
+        await manager.update_job_status(job_id, JobStatus.FAILED)
+        return
+
+    instance: MONAILabelApp = app_instance()
+    datastore = instance.datastore()
+
+    # 1. Stage: resolve each image to a local NIfTI (pulls from PACS + warms cache)
+    staged: List[Any] = []
+    source_paths: Dict[str, str] = {}
+    for file_path in files:
+        await manager.update_file_result(job_id, file_path, status="processing")
+        try:
+            local = await asyncio.to_thread(_local_nifti_for, datastore, file_path)
+            staged.append(StagedImage(image_id=file_path, local_path=local))
+            source_paths[file_path] = local
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Staging failed for %s: %s", file_path, e)
+            await manager.update_file_result(
+                job_id, file_path, status="failed", error=f"stage failed: {e}"
+            )
+
+    if not staged:
+        job.error = "No inputs could be staged for cloud inference"
+        await manager.update_job_status(job_id, JobStatus.FAILED)
+        return
+
+    request = {
+        "model": model,
+        "prompt": prompt,
+        "options": options or {},
+        "image_ids": [s.image_id for s in staged],
+    }
+
+    # 2. Upload + submit
+    try:
+        staged_uri = await asyncio.to_thread(provider.stage_inputs, job_id, staged, request)
+        provider_job_id = await asyncio.to_thread(provider.submit_job, job_id, staged_uri)
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Cloud submit failed for job %s", job_id)
+        job.error = f"Cloud submit failed: {e}"
+        await manager.update_job_status(job_id, JobStatus.FAILED)
+        return
+
+    job.metadata["provider_job_id"] = provider_job_id
+    job.metadata["backend"] = backend
+    manager._save_jobs()
+
+    # 3. Poll until terminal (Agent's own status polling reads JobManager meanwhile)
+    poll_interval = float(os.environ.get("CLOUD_BATCH_POLL_INTERVAL", "10"))
+    state = None
+    while True:
+        if job.cancel_requested:
+            await asyncio.to_thread(provider.cancel_job, provider_job_id)
+            await manager.update_job_status(job_id, JobStatus.CANCELLED)
+            return
+        try:
+            state = await asyncio.to_thread(provider.poll_job, provider_job_id)
+        except Exception as e:  # noqa: BLE001
+            logger.exception("Poll failed for job %s", job_id)
+            job.error = f"Cloud poll failed: {e}"
+            await manager.update_job_status(job_id, JobStatus.FAILED)
+            return
+        if state.status.is_terminal:
+            break
+        await asyncio.sleep(poll_interval)
+
+    if state.status == CloudJobStatus.CANCELLED:
+        await manager.update_job_status(job_id, JobStatus.CANCELLED)
+        return
+    if state.status == CloudJobStatus.FAILED:
+        job.error = state.message or "Cloud job failed"
+        await manager.update_job_status(job_id, JobStatus.FAILED)
+        return
+
+    # 4. Download masks + record results
+    try:
+        cloud_results = await asyncio.to_thread(provider.fetch_results, job_id, _cloud_dest_dir(job_id))
+    except Exception as e:  # noqa: BLE001
+        logger.exception("Fetch results failed for job %s", job_id)
+        job.error = f"Cloud fetch failed: {e}"
+        await manager.update_job_status(job_id, JobStatus.FAILED)
+        return
+
+    for cr in cloud_results:
+        if cr.status == "completed" and cr.local_mask_path:
+            src = source_paths.get(cr.image_id)
+            if src and not _geometry_matches(src, cr.local_mask_path):
+                await manager.update_file_result(
+                    job_id, cr.image_id, status="failed",
+                    error="returned mask geometry does not match source series",
+                    processing_time=cr.processing_time,
+                )
+                continue
+            await manager.update_file_result(
+                job_id, cr.image_id, status="completed",
+                mask_path=cr.local_mask_path, labels=cr.labels, confidence=cr.confidence,
+                processing_time=cr.processing_time, metadata=cr.metadata,
+            )
+        else:
+            await manager.update_file_result(
+                job_id, cr.image_id, status="failed",
+                error=cr.error, processing_time=cr.processing_time,
+            )
+
+    # 5. Final status — FAILED only if every file failed (matches local semantics)
+    if job.failed_count == job.total_files:
+        await manager.update_job_status(job_id, JobStatus.FAILED)
+    else:
+        await manager.update_job_status(job_id, JobStatus.COMPLETED)
+
+    logger.info(
+        f"Cloud batch job {job_id} finished on {backend}: "
+        f"{job.success_count} success, {job.failed_count} failed"
+    )
+
+
+# ============================================================================
 # API Endpoints
 # ============================================================================
 
@@ -323,16 +516,35 @@ async def start_batch_process(
     if not request.files:
         raise HTTPException(status_code=400, detail="Files list cannot be empty")
 
-    # Validate model exists
-    instance: MONAILabelApp = app_instance()
-    info = instance.info()
-    available_models = list(info.get("models", {}).keys())
+    # Select backend (per-job options.backend wins over the BATCH_BACKEND default).
+    backend = str(
+        (request.options or {}).get("backend") or os.environ.get("BATCH_BACKEND") or "local"
+    ).lower()
 
-    if request.model not in available_models:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Model '{request.model}' not found. Available: {available_models}",
-        )
+    # Validate the model. For cloud backends the CPU orchestrator has no models
+    # loaded locally, so validate against the cloud model catalogue instead.
+    if backend == "local":
+        instance: MONAILabelApp = app_instance()
+        available_models = list(instance.info().get("models", {}).keys())
+        if request.model not in available_models:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model '{request.model}' not found. Available: {available_models}",
+            )
+    else:
+        cloud_models = [
+            m.strip()
+            for m in os.environ.get(
+                "VERTEX_MODELS", "biomedparse,totalsegmentator,breast_tumor"
+            ).split(",")
+            if m.strip()
+        ]
+        if cloud_models and request.model not in cloud_models:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model '{request.model}' not available on cloud backend "
+                f"'{backend}'. Available: {cloud_models}",
+            )
 
     # Create job
     job = await manager.create_job(
@@ -453,6 +665,18 @@ async def cancel_batch_job(
             status_code=400,
             detail=f"Cannot cancel job with status: {job.status.value}",
         )
+
+    # Best-effort cancel of the remote cloud job (the running poll loop also
+    # reacts to cancel_requested, this just makes it prompt).
+    provider_job_id = (job.metadata or {}).get("provider_job_id")
+    backend = (job.metadata or {}).get("backend")
+    if provider_job_id and backend:
+        try:
+            from monailabel.cloud import get_cloud_provider
+
+            get_cloud_provider(backend).cancel_job(provider_job_id)
+        except Exception as e:  # noqa: BLE001 - cancellation is best effort
+            logger.warning("Cloud cancel failed for job %s: %s", job_id, e)
 
     await manager.cancel_job(job_id)
 

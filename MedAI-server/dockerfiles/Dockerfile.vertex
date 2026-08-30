@@ -1,0 +1,19 @@
+# MedAI Vertex AI Batch Worker
+# Thin layer over the inference image: identical model code + baked weights, with
+# the GCS I/O SDK and the batch worker entrypoint. Runs as a Vertex Custom Job.
+#
+# Build (see scripts/vertex/cloudbuild.vertex.yaml): build the inference image
+# first and pass it as BASE_IMAGE so this stays a small top layer.
+
+ARG BASE_IMAGE=medai/inference:latest
+FROM ${BASE_IMAGE}
+
+# GCS + Vertex SDKs (no-op if already present in the base via requirements-inference).
+RUN pip install --no-cache-dir google-cloud-storage==2.16.0 google-cloud-aiplatform==1.60.0
+
+# Batch worker entrypoint (model code + weights already in the base image).
+COPY monailabel/vertex/ /code/monailabel/vertex/
+
+ENV PYTHONPATH=/code:/code/biomedparse:$PYTHONPATH
+# Vertex passes: --job-gcs-uri gs://<bucket>/jobs/<job_id>
+ENTRYPOINT ["python", "-m", "monailabel.vertex.vertex_predict"]

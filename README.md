@@ -13,6 +13,12 @@ analytics, reporting) only when you enable them.
 > It is not FDA/CE cleared and must not be used for primary diagnosis or clinical
 > decision-making. See [SECURITY.md](SECURITY.md).
 
+> 📖 **Learn the concepts.** medai-os is the companion project to the open textbook
+> [*AI in Medical Imaging: From Pixels to Practice*](https://anandpreshob.github.io/ai-medical-imaging-book/)
+> ([GitHub](https://github.com/anandpreshob/ai-medical-imaging-book)), which explains
+> the modalities, models, and workflows behind every feature here — with hands-on
+> "Doing this in MedAI OS" walkthroughs per chapter.
+
 ---
 
 ## Quick start (basic viewer, zero backend)

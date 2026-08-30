@@ -305,6 +305,11 @@ MedAI-server/studies/
 .env.local
 !.env.example
 
+# Cloud credentials (service-account keys) — never commit
+MedAI-server/secrets/
+**/gcp-sa.json
+MedAI-server/scripts/vertex/*.json
+
 # Test / build output
 **/test-results/
 **/playwright-report/

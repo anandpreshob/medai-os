@@ -301,7 +301,9 @@ services:
     image: medai/chat:latest
     container_name: medai-chat
     hostname: chat
-    profiles: ["ai"]
+    # Also runs in the `vertex` (cloud) profile — the Agent is HTTP-only and just
+    # points MONAI_LABEL_SERVER_URL at the CPU orchestrator instead of inference.
+    profiles: ["ai", "vertex"]
     restart: on-failure:3
     networks:
       - medai-network
@@ -319,7 +321,9 @@ services:
       # MedAI Agent (Claude tool-use batch-orchestration harness)
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - AGENT_MODEL=${AGENT_MODEL:-claude-sonnet-5}
-      - MONAI_LABEL_SERVER_URL=http://inference:8001
+      # Defaults to the GPU inference service (ai profile). In the vertex profile
+      # set MONAI_LABEL_SERVER_URL=http://orchestrator:8001 in .env.
+      - MONAI_LABEL_SERVER_URL=${MONAI_LABEL_SERVER_URL:-http://inference:8001}
       - ORTHANC_DICOMWEB_URL=http://orthanc:8042/dicom-web
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
@@ -327,3 +331,87 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  # ============================================================================
+  # Cloud Orchestrator (profile: vertex) - CPU, no GPU, no local models
+  # ============================================================================
+  # Drop-in replacement for the `inference` service in cloud mode. Serves the
+  # MONAI Label REST surface the Agent needs (/datastore, /batch, /dicomseg) and
+  # dispatches batch segmentation to Vertex AI. All GPU work runs on Vertex.
+  orchestrator:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/Dockerfile.orchestrator
+    image: medai/orchestrator:latest
+    container_name: medai-orchestrator
+    hostname: orchestrator
+    profiles: ["vertex"]
+    restart: on-failure:3
+    networks:
+      - medai-network
+    ports:
+      - "8001:8001"  # Exposed for debugging; the gateway routes here
+    volumes:
+      - ./predictions:/code/predictions
+      - ./studies:/code/studies
+      - ./checkpoints:/code/checkpoints
+      # Service-account key for GCP (read-only). See scripts/vertex/create_key.sh.
+      - ${GCP_SA_KEY_FILE:-./secrets/gcp-sa.json}:/secrets/gcp-sa.json:ro
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - SERVICE_NAME=orchestrator
+      - SERVICE_PORT=8001
+      - MONAI_LABEL_STUDIES=${MONAI_LABEL_STUDIES:-http://orthanc:8042/dicom-web}
+      - ORTHANC_DICOMWEB_URL=http://orthanc:8042/dicom-web
+      # Cloud batch backend
+      - BATCH_BACKEND=${BATCH_BACKEND:-vertex}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-sa.json
+      - GCP_PROJECT=${GCP_PROJECT:-}
+      - GCP_REGION=${GCP_REGION:-us-central1}
+      - GCS_BUCKET=${GCS_BUCKET:-}
+      - VERTEX_AR_IMAGE=${VERTEX_AR_IMAGE:-}
+      - VERTEX_MACHINE_TYPE=${VERTEX_MACHINE_TYPE:-n1-standard-8}
+      - VERTEX_ACCELERATOR_TYPE=${VERTEX_ACCELERATOR_TYPE:-NVIDIA_TESLA_T4}
+      - VERTEX_ACCELERATOR_COUNT=${VERTEX_ACCELERATOR_COUNT:-1}
+      - VERTEX_SERVICE_ACCOUNT=${VERTEX_SERVICE_ACCOUNT:-}
+      - VERTEX_MODELS=${VERTEX_MODELS:-biomedparse,totalsegmentator,breast_tumor}
+      - CLOUD_BATCH_POLL_INTERVAL=${CLOUD_BATCH_POLL_INTERVAL:-10}
+    depends_on:
+      - orthanc
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/monai/info"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 90s
+
+  # ============================================================================
+  # API Gateway for cloud mode (profile: vertex)
+  # ============================================================================
+  # Same role as the `ai` nginx gateway but routes /monai/* to the CPU
+  # orchestrator and drops the GPU vlm/llm upstreams (absent in cloud mode).
+  gateway-vertex:
+    image: nginx:alpine
+    container_name: medai-gateway-vertex
+    hostname: gateway
+    profiles: ["vertex"]
+    restart: unless-stopped
+    networks:
+      - medai-network
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./nginx/nginx.vertex.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      orchestrator:
+        condition: service_started
+      chat:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

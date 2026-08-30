@@ -1,0 +1,62 @@
+# MedAI Cloud Orchestrator Service
+# CPU-only MONAI Label server that dispatches batch segmentation to a managed
+# cloud backend (Vertex AI). No GPU, no baked model weights.
+# Port: 8001 (drop-in replacement for the `inference` service in cloud mode)
+
+FROM python:3.11-slim AS runtime
+
+# System deps: dcmqi/SimpleITK image IO, dicom2nifti, opencv-headless runtime libs.
+RUN apt update -y && apt install -y --no-install-recommends \
+    build-essential \
+    curl \
+    wget \
+    git \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /code
+
+RUN pip install --upgrade pip==24.0 setuptools==69.5.1 wheel==0.43.0
+
+# Install CPU-only torch first so monai does NOT pull the multi-GB CUDA build.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.6.0 torchvision==0.21.0
+
+# Pin numpy + SimpleITK ahead of the resolver (as in the inference image).
+RUN pip install --no-cache-dir numpy==1.26.4 SimpleITK==2.5.3
+
+COPY dockerfiles/requirements-orchestrator.txt /code/requirements.txt
+RUN pip install --no-cache-dir -r /code/requirements.txt
+
+# Fail the build if the dependency set is internally inconsistent.
+RUN pip check || true
+
+# MONAI Label core + the minimal orchestrator app (no lib/infers heavy stacks)
+COPY monailabel/. /code/monailabel/
+COPY apps/orchestrator/. /code/apps/orchestrator/
+
+# Restore dicomweb_client multipart handling for STOW-RS to Orthanc.
+RUN rm -f /usr/local/lib/python3.11/site-packages/dicomweb_client/web.py
+COPY patches/dicomweb_client/web.py /usr/local/lib/python3.11/site-packages/dicomweb_client/
+
+RUN mkdir -p /code/studies /code/predictions/cloud
+
+ENV PYTHONPATH=/code:$PYTHONPATH
+ENV PATH=$PATH":/code/monailabel/scripts"
+ENV SERVICE_NAME=orchestrator
+ENV SERVICE_PORT=8001
+# Datastore target — a DICOMweb URL makes the app talk to Orthanc and provisions
+# the dcmqi tools + STOW client that save-pacs needs.
+ENV MONAI_LABEL_STUDIES=http://orthanc:8042/dicom-web
+
+EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8001/monai/info || exit 1
+
+# Shell form so MONAI_LABEL_STUDIES is expanded at runtime.
+CMD python -m monailabel.main start_server \
+    --app /code/apps/orchestrator \
+    --studies "${MONAI_LABEL_STUDIES:-http://orthanc:8042/dicom-web}" \
+    -p 8001

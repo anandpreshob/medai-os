@@ -122,6 +122,8 @@ class BatchJob:
     current_file_index: int = 0
     results: Dict[str, FileResult] = field(default_factory=dict)
     error: Optional[str] = None
+    # Free-form job-level metadata (e.g. cloud provider job id for a Vertex run).
+    metadata: Dict[str, Any] = field(default_factory=dict)
     progress_callbacks: Set[Callable] = field(default_factory=set)
     pause_event: asyncio.Event = field(default_factory=asyncio.Event)
     cancel_requested: bool = False
@@ -210,6 +212,7 @@ class BatchJob:
             "rejected_count": self.rejected_count,
             "progress_percentage": round(self.progress_percentage, 2),
             "error": self.error,
+            "metadata": self.metadata,
         }
         if include_results:
             data["results"] = {k: v.to_dict() for k, v in self.results.items()}
@@ -286,6 +289,7 @@ class JobManager:
                             completed_at=job_data.get("completed_at"),
                             current_file_index=job_data.get("current_file_index", 0),
                             error=job_data.get("error"),
+                            metadata=job_data.get("metadata", {}),
                         )
                         # Restore results
                         if "results" in job_data:

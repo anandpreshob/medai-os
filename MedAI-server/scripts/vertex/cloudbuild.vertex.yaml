@@ -1,0 +1,49 @@
+# Cloud Build: build the inference base image, then the thin Vertex worker on top.
+# Runs in-region so the multi-GB image push to Artifact Registry is intra-GCP.
+#
+# Invoked by 02_build_push.sh with substitutions:
+#   _INFERENCE_IMAGE, _VERTEX_IMAGE, _TAG
+#
+# Build context is MedAI-server/ (Dockerfiles reference monailabel/, apps/, ...).
+
+steps:
+  # 1. Inference base (CUDA + all model weights). Slow (15-40 min) but cached.
+  - name: gcr.io/cloud-builders/docker
+    id: build-inference
+    args:
+      - build
+      - -f
+      - dockerfiles/Dockerfile.inference
+      - -t
+      - '${_INFERENCE_IMAGE}:${_TAG}'
+      - -t
+      - '${_INFERENCE_IMAGE}:latest'
+      - .
+
+  # 2. Vertex worker: thin layer FROM the inference image just built.
+  - name: gcr.io/cloud-builders/docker
+    id: build-vertex
+    args:
+      - build
+      - -f
+      - dockerfiles/Dockerfile.vertex
+      - --build-arg
+      - 'BASE_IMAGE=${_INFERENCE_IMAGE}:${_TAG}'
+      - -t
+      - '${_VERTEX_IMAGE}:${_TAG}'
+      - -t
+      - '${_VERTEX_IMAGE}:latest'
+      - .
+    waitFor: ['build-inference']
+
+images:
+  - '${_INFERENCE_IMAGE}:${_TAG}'
+  - '${_INFERENCE_IMAGE}:latest'
+  - '${_VERTEX_IMAGE}:${_TAG}'
+  - '${_VERTEX_IMAGE}:latest'
+
+options:
+  machineType: E2_HIGHCPU_32
+  diskSizeGb: 200
+
+timeout: 3600s
