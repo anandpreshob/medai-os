@@ -1,0 +1,909 @@
+[
+  {
+    "id": "pydicom-corpus",
+    "tier": "corpus",
+    "kind": "download",
+    "modality": "mixed (CT/MR/US/SC/RT/SR/waveform)",
+    "format": "DICOM",
+    "description": "pydicom test-data edge cases: transfer syntaxes (RLE, JPEG-LS, J2K, JPEG baseline/lossless, big-endian, deflate), enhanced multi-frame MR, RGB/YBR colour, US, RT objects, SR, waveform, truncated/no-meta error paths. All 31 names from manifest doc section 2 were found (18 in pydicom/pydicom test_files, 13 in pydicom/pydicom-data data_store).",
+    "license": "pydicom test files (MIT-licensed project; test files contributed for testing use, see https://github.com/pydicom/pydicom/blob/main/src/pydicom/data/test_files/README.txt and https://github.com/pydicom/pydicom-data)",
+    "citation": "Mason D. et al. pydicom: An open source DICOM library. https://github.com/pydicom/pydicom (Zenodo DOI 10.5281/zenodo.592867)",
+    "matrix_rows": [
+      "DICOM local file / folder",
+      "CT compressed",
+      "Enhanced MR",
+      "US",
+      "RTDOSE / RTPLAN / SR",
+      "Error paths"
+    ],
+    "files": [
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/CT_small.dcm",
+        "path": "pydicom-corpus/CT_small.dcm",
+        "sha256": "3dd31e5cc835b3f2cdd46c9da1982f59251e78518fefa8163d914631c66437d6",
+        "size": 39206
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/MR_small.dcm",
+        "path": "pydicom-corpus/MR_small.dcm",
+        "sha256": "3f27d1c22f1a66e80d7bb7c911e8610fd0bb70325a76746a7adb1c0ddefcf2bb",
+        "size": 9830
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/MR_small_RLE.dcm",
+        "path": "pydicom-corpus/MR_small_RLE.dcm",
+        "sha256": "2e5cb60878dc0acc494298ccdad28fce2cf14c51096e5d8cedab40248ea02e6c",
+        "size": 7790
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/MR_small_jp2klossless.dcm",
+        "path": "pydicom-corpus/MR_small_jp2klossless.dcm",
+        "sha256": "4c0049e0355b560c8c846538d827afbdae5311b20fc5e5a93a3892e109bb140d",
+        "size": 6008
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/MR_small_jpeg_ls_lossless.dcm",
+        "path": "pydicom-corpus/MR_small_jpeg_ls_lossless.dcm",
+        "sha256": "b2b69dd2ae854bf7dfada6745709cd5d8a4573ea12387adbbdc56e8be6056206",
+        "size": 6124
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/JPEG2000.dcm",
+        "path": "pydicom-corpus/JPEG2000.dcm",
+        "sha256": "5be539024e6803029a7b73c0f8e72e88d032e3a0bc05922c0c047344780aa8e1",
+        "size": 3308
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/JPEG-LL.dcm",
+        "path": "pydicom-corpus/JPEG-LL.dcm",
+        "sha256": "c9d000c75d92b143ce1c0421471a7e9a69c8996d98b2589e533e311615a10079",
+        "size": 118986
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/JPEG-lossy.dcm",
+        "path": "pydicom-corpus/JPEG-lossy.dcm",
+        "sha256": "c425608e2fcda8332c75d33f890bfe3bae32700608b719046b3d9e789374c292",
+        "size": 9844
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/693_J2KI.dcm",
+        "path": "pydicom-corpus/693_J2KI.dcm",
+        "sha256": "8d5d503fd46b9a59c628762d71d7391ea1a2a5fd8d339ac82ef9e281a15ef65f",
+        "size": 3590
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/693_UNCI.dcm",
+        "path": "pydicom-corpus/693_UNCI.dcm",
+        "sha256": "42d6c33d6666bf569a53951211be6fca2ab04956db43c3f75a9720d976ab128c",
+        "size": 526324
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/emri_small.dcm",
+        "path": "pydicom-corpus/emri_small.dcm",
+        "sha256": "151233ec63f64ebb63b979df51aa827cd612a53422c073f6ef341770c7bc9a56",
+        "size": 84256
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/emri_small_RLE.dcm",
+        "path": "pydicom-corpus/emri_small_RLE.dcm",
+        "sha256": "93c19bca3fb6b7202dcd067de8d16cb6b3f7c6e9a0632e474aab81175ee45266",
+        "size": 49022
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/emri_small_big_endian.dcm",
+        "path": "pydicom-corpus/emri_small_big_endian.dcm",
+        "sha256": "8e18ed3542bc4df70dc6acda87eab5095b19e2b4c1b7fb72ba457e7c217b1ab7",
+        "size": 84256
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/emri_small_jpeg_2k_lossless.dcm",
+        "path": "pydicom-corpus/emri_small_jpeg_2k_lossless.dcm",
+        "sha256": "b2b4063359a08ed3b0afa9f4e4f72f84af79e5116515b446d9a30da9dc7f1888",
+        "size": 40324
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/US1_UNCR.dcm",
+        "path": "pydicom-corpus/US1_UNCR.dcm",
+        "sha256": "af5a66e40cd49d15dfbf7b78c850eba0662bdc7339339c3fa13f123a57e812cb",
+        "size": 922878
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/US1_J2KR.dcm",
+        "path": "pydicom-corpus/US1_J2KR.dcm",
+        "sha256": "2427fdc82d90cd4ce8a69b5157eecb37549902dce138ac15c6456a7eae70b83d",
+        "size": 153760
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/US1_J2KI.dcm",
+        "path": "pydicom-corpus/US1_J2KI.dcm",
+        "sha256": "22340375674ff253196ce8a147acf0458bea3f105ff2c6af81f0eb119729605b",
+        "size": 59140
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/SC_rgb.dcm",
+        "path": "pydicom-corpus/SC_rgb.dcm",
+        "sha256": "b0f868d6a689a0ff96c39b459caf1b628eacd74134114ce84549573321231138",
+        "size": 31300
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/SC_rgb_small_odd.dcm",
+        "path": "pydicom-corpus/SC_rgb_small_odd.dcm",
+        "sha256": "fd4b944846665e82ff27ee9f9bec91a21a2de26005f532e82dffc8e848c3c7a0",
+        "size": 1444
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/color-pl.dcm",
+        "path": "pydicom-corpus/color-pl.dcm",
+        "sha256": "16bfc3134e59d789985efddfc70d924420b16e1c6d1f21c960bb4544c9e9dbf9",
+        "size": 93278
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/color-px.dcm",
+        "path": "pydicom-corpus/color-px.dcm",
+        "sha256": "bf10a89f277743ea337b7c4741efa0709a086f0161e1ff2b94cff01e428047e4",
+        "size": 93278
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom-data/master/data_store/data/color3d_jpeg_baseline.dcm",
+        "path": "pydicom-corpus/color3d_jpeg_baseline.dcm",
+        "sha256": "c8798b8abf8ae0a18e8c9952e7c7f75f3cc8465234b1b63f9e3ba3bebb9d5625",
+        "size": 6143990
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/rtstruct.dcm",
+        "path": "pydicom-corpus/rtstruct.dcm",
+        "sha256": "40c41bdf871fd8553396b02476a66024ed23c04927c0dc53fd10ecd3472cd0d3",
+        "size": 2534
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/rtdose.dcm",
+        "path": "pydicom-corpus/rtdose.dcm",
+        "sha256": "1d6cc092146d093e086a6bcccef4ebb7d097941343f5cd3b6395d157b64e37e4",
+        "size": 7568
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/rtplan.dcm",
+        "path": "pydicom-corpus/rtplan.dcm",
+        "sha256": "18585dbbd6f7c5d1b7e749d6976d72251802ad89d65bccd31c03006f95aab89b",
+        "size": 2672
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/test-SR.dcm",
+        "path": "pydicom-corpus/test-SR.dcm",
+        "sha256": "eebf00a37e97503b5a65022f9c2f89db6e8dac4cc632682aa3456aee1b6c177e",
+        "size": 6796
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/waveform_ecg.dcm",
+        "path": "pydicom-corpus/waveform_ecg.dcm",
+        "sha256": "72f1cb0e65e8023321acdaa5425c44125cd507f5aaa148f7fe10516e1d2e688a",
+        "size": 291088
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/ExplVR_BigEnd.dcm",
+        "path": "pydicom-corpus/ExplVR_BigEnd.dcm",
+        "sha256": "42eb61ea5650f1064e52d48019cd87b118e52cf4dfbc8fa57427ed2ed4c036ea",
+        "size": 15412
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/ExplVR_LitEndNoMeta.dcm",
+        "path": "pydicom-corpus/ExplVR_LitEndNoMeta.dcm",
+        "sha256": "008e9302975d34899d89b4e3f044f8637b16acde25242eb0b36a1ffc034b9b42",
+        "size": 434
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/no_meta.dcm",
+        "path": "pydicom-corpus/no_meta.dcm",
+        "sha256": "52912b9950f457ac7618efaad0cdd91b52354e07fbc25abee895bd86beebf9bc",
+        "size": 38871
+      },
+      {
+        "url": "https://raw.githubusercontent.com/pydicom/pydicom/main/src/pydicom/data/test_files/MR_truncated.dcm",
+        "path": "pydicom-corpus/MR_truncated.dcm",
+        "sha256": "a3f26c279dd214951d32a1548362df3c93f9730135fa893a01552c0e632f587f",
+        "size": 9630
+      }
+    ]
+  },
+  {
+    "id": "slicer-mrhead",
+    "tier": "P0",
+    "kind": "download",
+    "modality": "MR",
+    "format": "NRRD",
+    "description": "3D Slicer SampleData MRHead (MR-head.nrrd), T1 brain MR.",
+    "license": "Public sample data distributed with 3D Slicer (BSD-style Slicer License); MRHead was donated by the imaged person for unrestricted use",
+    "citation": "Fedorov A. et al. 3D Slicer as an image computing platform for the Quantitative Imaging Network. Magn Reson Imaging. 2012;30(9):1323-41. https://www.slicer.org/ ; data: https://github.com/Slicer/SlicerTestingData",
+    "matrix_rows": [
+      "NRRD",
+      "MR"
+    ],
+    "files": [
+      {
+        "url": "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286affadf823a7e58df93",
+        "path": "slicer/MR-head.nrrd",
+        "sha256": "cc211f0dfd9a05ca3841ce1141b292898b2dd2d3f08286affadf823a7e58df93",
+        "size": 6607313
+      }
+    ]
+  },
+  {
+    "id": "slicer-ctchest",
+    "tier": "P0",
+    "kind": "download",
+    "modality": "CT",
+    "format": "NRRD",
+    "description": "3D Slicer SampleData CTChest (CT-chest.nrrd).",
+    "license": "Public sample data distributed with 3D Slicer (BSD-style Slicer License); MRHead was donated by the imaged person for unrestricted use",
+    "citation": "Fedorov A. et al. 3D Slicer as an image computing platform for the Quantitative Imaging Network. Magn Reson Imaging. 2012;30(9):1323-41. https://www.slicer.org/ ; data: https://github.com/Slicer/SlicerTestingData",
+    "matrix_rows": [
+      "NRRD",
+      "CT uncompressed"
+    ],
+    "files": [
+      {
+        "url": "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/4507b664690840abb6cb9af2d919377ffc4ef75b167cb6fd0f747befdb12e38e",
+        "path": "slicer/CT-chest.nrrd",
+        "sha256": "4507b664690840abb6cb9af2d919377ffc4ef75b167cb6fd0f747befdb12e38e",
+        "size": 42189103
+      }
+    ]
+  },
+  {
+    "id": "slicer-mrhead-dcm",
+    "tier": "P0",
+    "kind": "download",
+    "modality": "MR",
+    "format": "DICOM series (zip)",
+    "description": "3D Slicer testing data: de-identified MRHead as a single-series DICOM folder (deidentifiedMRHead-dcm-one-series.zip, used by Slicer's DICOMReaders test). NOTE: the manifest doc's 'slicer-ctchest-dcm' does not exist -- SlicerTestingData ships CTChest only as NRRD; this MR series replaces it for the local-DICOM-folder / Orthanc-upload rows, and 'orthanc-demo-hn-ct-rt' covers CT DICOM.",
+    "license": "Public sample data distributed with 3D Slicer (BSD-style Slicer License); MRHead was donated by the imaged person for unrestricted use",
+    "citation": "Fedorov A. et al. 3D Slicer as an image computing platform for the Quantitative Imaging Network. Magn Reson Imaging. 2012;30(9):1323-41. https://www.slicer.org/ ; data: https://github.com/Slicer/SlicerTestingData",
+    "matrix_rows": [
+      "DICOM local file / folder",
+      "MR"
+    ],
+    "files": [
+      {
+        "url": "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/899f3f8617ca53bad7dca0b2908478319e708b48ff41dfa64b6bac1d76529928",
+        "path": "slicer/deidentifiedMRHead-dcm-one-series.zip",
+        "sha256": "899f3f8617ca53bad7dca0b2908478319e708b48ff41dfa64b6bac1d76529928",
+        "size": 6670002,
+        "extract": "zip",
+        "extracted_sha256": "172aa2bc41297850e12a9aef0a9e83c7f082db4e4dc844e15017dae371fb5fc9",
+        "extracted_files": 130,
+        "extracted_bytes": 17432006
+      }
+    ]
+  },
+  {
+    "id": "slicer-dti",
+    "tier": "P2",
+    "kind": "download",
+    "modality": "MR (DTI)",
+    "format": "NRRD",
+    "description": "3D Slicer SampleData DTIBrain (DTI-Brain.nrrd), multi-component tensor NRRD.",
+    "license": "Public sample data distributed with 3D Slicer (BSD-style Slicer License); MRHead was donated by the imaged person for unrestricted use",
+    "citation": "Fedorov A. et al. 3D Slicer as an image computing platform for the Quantitative Imaging Network. Magn Reson Imaging. 2012;30(9):1323-41. https://www.slicer.org/ ; data: https://github.com/Slicer/SlicerTestingData",
+    "matrix_rows": [
+      "NRRD"
+    ],
+    "files": [
+      {
+        "url": "https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/5c78d00c86ae8d968caa7a49b870ef8e1c04525b1abc53845751d8bce1f0b91a",
+        "path": "slicer/DTI-Brain.nrrd",
+        "sha256": "5c78d00c86ae8d968caa7a49b870ef8e1c04525b1abc53845751d8bce1f0b91a",
+        "size": null
+      }
+    ]
+  },
+  {
+    "id": "orthanc-demo-hn-ct-rt",
+    "tier": "P0",
+    "kind": "download",
+    "modality": "CT + RTSTRUCT + RTDOSE",
+    "format": "DICOM study (zip, 3 series, 200 instances)",
+    "description": "Orthanc public demo server study 'RT^HEAD_NECK (Adult)', patient HN_P001: head/neck CT (198 slices, uncompressed), an RTSTRUCT and an RTDOSE in one study. Fetched as the Orthanc REST study archive; the same study is exposed over DICOMweb (see 'dicomweb'). The zip is regenerated on every request (non-deterministic timestamps), so integrity is checked with extracted_sha256 over the unpacked files.",
+    "license": "Public demo server data ('demo use'; https://orthanc.uclouvain.be/demo/). UID root 1.3.6.1.4.1.14519.5.2.1 indicates TCIA de-identified data (TCIA collections are generally CC BY 3.0/4.0) -- confirm the source collection licence before redistributing beyond local testing",
+    "citation": "Jodogne S. The Orthanc Ecosystem for Medical Imaging. J Digit Imaging. 2018;31(3):341-352. Public demo server: https://orthanc.uclouvain.be/demo/",
+    "matrix_rows": [
+      "DICOM local file / folder",
+      "CT uncompressed",
+      "RTSTRUCT",
+      "RTDOSE / RTPLAN / SR"
+    ],
+    "files": [
+      {
+        "url": "https://orthanc.uclouvain.be/demo/studies/1c379a23-9fd28bba-02b60e5b-850ff34e-4349f09b/archive",
+        "path": "orthanc-demo/HN_P001.zip",
+        "sha256": null,
+        "size": 36857146,
+        "extract": "zip",
+        "extracted_sha256": "f401c484c9af85c047e98ff2129780aee46695a48454e33d5ce8c31e8676a646",
+        "note": "archive zip is regenerated per request (not byte-stable); sha256 intentionally null, contents verified via extracted_sha256",
+        "extracted_files": 200,
+        "extracted_bytes": 143194098,
+        "volatile_archive": true
+      }
+    ],
+    "dicomweb": {
+      "base": "https://orthanc.uclouvain.be/demo/dicom-web",
+      "qido_rs": "https://orthanc.uclouvain.be/demo/dicom-web/studies?StudyInstanceUID=1.3.6.1.4.1.14519.5.2.1.2193.7172.847236098565581057121195872945",
+      "wado_rs_study": "https://orthanc.uclouvain.be/demo/dicom-web/studies/1.3.6.1.4.1.14519.5.2.1.2193.7172.847236098565581057121195872945",
+      "study_instance_uid": "1.3.6.1.4.1.14519.5.2.1.2193.7172.847236098565581057121195872945",
+      "series": {
+        "CT HEAD/NECK 2.0 B30s (198)": "1.3.6.1.4.1.14519.5.2.1.2193.7172.215111709746721743805035350686",
+        "RTSTRUCT ARIA RadOnc Structure Sets (1)": "1.3.6.1.4.1.14519.5.2.1.2193.7172.213354059528434006228837759936",
+        "RTDOSE Eclipse Doses (1)": "1.3.6.1.4.1.14519.5.2.1.2193.7172.329574933994116044160154909094"
+      },
+      "procedure": "GET {wado_rs_study}/series/{SeriesInstanceUID} with Accept: multipart/related; type=\"application/dicom\" and split the multipart body on the boundary; the server does NOT support single-part Accept: application/dicom (400). Per-instance Orthanc REST alternative: GET {base_without_dicom-web}/instances/{orthancId}/file."
+    }
+  },
+  {
+    "id": "orthanc-demo-comunix-petct",
+    "tier": "P1",
+    "kind": "download",
+    "modality": "PT + CT",
+    "format": "DICOM study (zip, 2 series, 166 instances)",
+    "description": "Orthanc public demo server study 'Neck^1HEAD_NECK_PETCT', patient COMUNIX: PET WB (83) + CT HEAD/NK (83), for PET/CT fusion and a second DICOMweb implementation. NOTE: PET header has Units=BQML, RadionuclideTotalDose and DecayCorrection but PatientWeight=0, so a full SUVbw cannot be computed from it; use autopet-fdg for real SUV.",
+    "license": "Public demo server data ('demo use'; https://orthanc.uclouvain.be/demo/). COMUNIX originates from the OsiriX DICOM sample image library -- confirm terms before redistributing beyond local testing",
+    "citation": "Jodogne S. The Orthanc Ecosystem for Medical Imaging. J Digit Imaging. 2018;31(3):341-352. Public demo server: https://orthanc.uclouvain.be/demo/",
+    "matrix_rows": [
+      "PET / SUV / fusion",
+      "DICOM local file / folder"
+    ],
+    "files": [
+      {
+        "url": "https://orthanc.uclouvain.be/demo/studies/6c65289b-db2fcb71-7eaf73f4-8e12470c-a4d6d7cf/archive",
+        "path": "orthanc-demo/COMUNIX.zip",
+        "sha256": null,
+        "size": 17388736,
+        "extract": "zip",
+        "extracted_sha256": "62e12d253d0cc5351c04dd13949ac2df05881d1381b91de77c9f472b06f59800",
+        "note": "archive zip is regenerated per request (not byte-stable); sha256 intentionally null, contents verified via extracted_sha256",
+        "extracted_files": 166,
+        "extracted_bytes": 46682100,
+        "volatile_archive": true
+      }
+    ]
+  },
+  {
+    "id": "orthanc-demo",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "mixed (CT/MR/PT/RT)",
+    "format": "DICOMweb (streamed)",
+    "description": "Orthanc public demo server as a live DICOMweb source (8 studies / 26 series / 2552 instances at time of writing; REST and DICOMweb both reachable).",
+    "license": "Demo use",
+    "citation": "Jodogne S. The Orthanc Ecosystem for Medical Imaging. J Digit Imaging. 2018;31(3):341-352. Public demo server: https://orthanc.uclouvain.be/demo/",
+    "matrix_rows": [
+      "DICOM local file / folder"
+    ],
+    "instructions": "Point the viewer's PACS/DICOMweb config at https://orthanc.uclouvain.be/demo/dicom-web (QIDO-RS/WADO-RS, no auth). REST API root: https://orthanc.uclouvain.be/demo/ (e.g. /studies, /series?expand, /instances/{id}/file). Nothing to download.",
+    "dicomweb": {
+      "base": "https://orthanc.uclouvain.be/demo/dicom-web",
+      "qido_rs": "https://orthanc.uclouvain.be/demo/dicom-web/studies"
+    }
+  },
+  {
+    "id": "msd-spleen",
+    "tier": "P0",
+    "kind": "download",
+    "optional": true,
+    "modality": "CT",
+    "format": "NIfTI (.nii.gz) + labels, tar",
+    "description": "Medical Segmentation Decathlon Task09_Spleen: 41 training CT volumes with spleen labels + 20 test volumes. ~1.5 GB; not fetched by default -- run `fetch.py --fixture msd-spleen`.",
+    "license": "CC BY-SA 4.0",
+    "citation": "Antonelli M. et al. The Medical Segmentation Decathlon. Nat Commun. 2022;13:4128. https://medicaldecathlon.com/",
+    "matrix_rows": [
+      "NIfTI"
+    ],
+    "files": [
+      {
+        "url": "https://msd-for-monai.s3-us-west-2.amazonaws.com/Task09_Spleen.tar",
+        "path": "msd/Task09_Spleen.tar",
+        "sha256": null,
+        "size": 1546264576,
+        "extract": "tar",
+        "extracted_sha256": null,
+        "note": "not downloaded during tooling build (1.5 GB); MONAI's DecathlonDataset records md5 410d4a301da4e5b2f6f86ec3ddba524e for this tar"
+      }
+    ]
+  },
+  {
+    "id": "msd-brain",
+    "tier": "P1",
+    "kind": "download",
+    "optional": true,
+    "modality": "MR (4-channel)",
+    "format": "NIfTI 4D, tar",
+    "description": "MSD Task01_BrainTumour (~7 GB). Not fetched by default; fetch with --fixture msd-brain and pick 5 cases.",
+    "license": "CC BY-SA 4.0",
+    "citation": "Antonelli M. et al. The Medical Segmentation Decathlon. Nat Commun. 2022;13:4128. https://medicaldecathlon.com/",
+    "matrix_rows": [
+      "NIfTI",
+      "MR"
+    ],
+    "files": [
+      {
+        "url": "https://msd-for-monai.s3-us-west-2.amazonaws.com/Task01_BrainTumour.tar",
+        "path": "msd/Task01_BrainTumour.tar",
+        "sha256": null,
+        "size": null,
+        "extract": "tar",
+        "extracted_sha256": null
+      }
+    ]
+  },
+  {
+    "id": "synth-ct-cube",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "CT",
+    "format": "DICOM series + NIfTI + NRRD + MHA + MHD/RAW + TIFF",
+    "description": "64x64x32 CT, 1x1x2 mm, bright cuboid 20x30x32 mm (19200 mm3) inside a water body on air; expected.json has volume, edges, spacing, slice count.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "NIfTI",
+      "NRRD",
+      "MHA",
+      "DICOM local file / folder",
+      "CT uncompressed"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-ct-cube/"
+  },
+  {
+    "id": "synth-anisotropic",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "CT",
+    "format": "DICOM series + NIfTI",
+    "description": "Same cuboid at 0.5x0.5x3.0 mm spacing (10x15x48 mm, 7200 mm3).",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "CT uncompressed",
+      "MPR"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-anisotropic/"
+  },
+  {
+    "id": "synth-oblique",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "CT",
+    "format": "DICOM series + NIfTI",
+    "description": "Same cuboid with direction cosines rotated 20 degrees about z.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "CT uncompressed"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-oblique/"
+  },
+  {
+    "id": "synth-mono1",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "DX",
+    "format": "DICOM (MONOCHROME1)",
+    "description": "512x512 DX, MONOCHROME1: a high-valued square that must render DARK.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "CR/DX",
+      "MG"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-mono1/"
+  },
+  {
+    "id": "synth-multiframe",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "XA",
+    "format": "DICOM multi-frame",
+    "description": "30-frame 256x256 XA cine with a moving disc; NumberOfFrames=30, FrameTime.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "XA/RF cine"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-multiframe/"
+  },
+  {
+    "id": "synth-rgb",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "OT",
+    "format": "DICOM Secondary Capture RGB",
+    "description": "256x256 RGB SC with red/green/blue/yellow quadrants.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "US"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-rgb/"
+  },
+  {
+    "id": "synth-seg",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "SEG",
+    "format": "DICOM-SEG",
+    "description": "DICOM Segmentation of the cuboid referencing synth-ct-cube (highdicom).",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "DICOM-SEG"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-seg/"
+  },
+  {
+    "id": "synth-rtstruct",
+    "tier": "P0",
+    "kind": "synthetic",
+    "modality": "RTSTRUCT",
+    "format": "DICOM RTSTRUCT",
+    "description": "RTSTRUCT with one closed planar contour of the cuboid per slice, referencing synth-ct-cube.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture, scripts/sample-data/synth.py",
+    "matrix_rows": [
+      "RTSTRUCT"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-rtstruct/"
+  },
+  {
+    "id": "itk-mha",
+    "tier": "P1",
+    "kind": "synthetic",
+    "modality": "CT",
+    "format": "MHA + MHD/RAW",
+    "description": "MHA and MHD+RAW copies of synth-ct-cube written by SimpleITK (known geometry).",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture",
+    "matrix_rows": [
+      "MHA"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-ct-cube/"
+  },
+  {
+    "id": "tiff-stack",
+    "tier": "P2",
+    "kind": "synthetic",
+    "modality": "CT",
+    "format": "3D TIFF",
+    "description": "3D TIFF copy of synth-ct-cube written by SimpleITK.",
+    "license": "Apache-2.0 (generated in-repo)",
+    "citation": "MedAI-OS synthetic fixture",
+    "matrix_rows": [
+      "TIFF"
+    ],
+    "generator": "scripts/sample-data/synth.py",
+    "output": "sample-data/synth/synth-ct-cube/"
+  },
+  {
+    "id": "totalseg-ct",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "CT",
+    "format": "NIfTI + 117 label NIfTI",
+    "description": "TotalSegmentator dataset v2 (Zenodo), pick 10 cases.",
+    "license": "CC BY 4.0",
+    "citation": "Wasserthal J. et al. TotalSegmentator. Radiol Artif Intell. 2023. Zenodo DOI 10.5281/zenodo.10047292",
+    "matrix_rows": [
+      "NIfTI",
+      "DICOM-SEG"
+    ],
+    "instructions": "Download Totalsegmentator_dataset_v201.zip (~24 GB) from https://zenodo.org/records/10047292 (no login, but too large for the fetcher);\nunzip and copy ~10 case folders (ct.nii.gz + segmentations/) into sample-data/totalseg-ct/."
+  },
+  {
+    "id": "lidc-ct-dicom",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "CT",
+    "format": "DICOM (multi-series studies)",
+    "description": "TCIA LIDC-IDRI, 2-3 studies with multiple series.",
+    "license": "CC BY 3.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "CT uncompressed",
+      "PACS QIDO/WADO-RS"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id lidc_idri --patient-id LIDC-IDRI-0001 --download-dir sample-data/lidc-ct-dicom\n(free GCS egress via idc-index; no credentials required)"
+  },
+  {
+    "id": "qin-prostate-mr",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "MR + SEG",
+    "format": "DICOM + DICOM-SEG",
+    "description": "IDC QIN-PROSTATE-Repeatability: multi-parametric MR with DICOM-SEG.",
+    "license": "CC BY 3.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "MR",
+      "DICOM-SEG"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id qin_prostate_repeatability --patient-id PCAMPMRI-00001 --download-dir sample-data/qin-prostate-mr"
+  },
+  {
+    "id": "nsclc-radiomics-rtstruct",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "CT + RTSTRUCT + SEG",
+    "format": "DICOM",
+    "description": "TCIA/IDC NSCLC-Radiomics (Lung1), 2 cases.",
+    "license": "CC BY-NC 3.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93. Aerts H. et al. Nat Commun 2014;5:4006.",
+    "matrix_rows": [
+      "RTSTRUCT",
+      "DICOM-SEG"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id nsclc_radiomics --patient-id LUNG1-001 --download-dir sample-data/nsclc-radiomics-rtstruct"
+  },
+  {
+    "id": "autopet-fdg",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "PT + CT",
+    "format": "DICOM",
+    "description": "TCIA FDG-PET-CT-Lesions (AutoPET), 2 cases with real SUV headers.",
+    "license": "CC BY 4.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93. Gatidis S. et al. Sci Data 2022;9:601.",
+    "matrix_rows": [
+      "PET / SUV / fusion"
+    ],
+    "instructions": "TCIA collection page: https://doi.org/10.7937/gkr0-xv29 -- requires the NBIA Data Retriever (no account for public collections).\nAlternatively via IDC: idc download --collection-id fdg_pet_ct_lesions --patient-id <id> --download-dir sample-data/autopet-fdg"
+  },
+  {
+    "id": "rsna-pneumonia-dx",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "DX",
+    "format": "DICOM (CR/DX)",
+    "description": "RSNA Pneumonia Detection Challenge, 20 files.",
+    "license": "Non-commercial research use (Kaggle competition rules)",
+    "citation": "RSNA Pneumonia Detection Challenge 2018, https://www.kaggle.com/c/rsna-pneumonia-detection-challenge",
+    "matrix_rows": [
+      "CR/DX"
+    ],
+    "instructions": "Requires a Kaggle account and accepting the competition rules (never embed API keys in the repo):\nkaggle competitions download -c rsna-pneumonia-detection-challenge -f stage_2_train_images.zip\nunzip and copy ~20 .dcm into sample-data/rsna-pneumonia-dx/"
+  },
+  {
+    "id": "vindr-cxr",
+    "tier": "P0",
+    "kind": "manual",
+    "modality": "DX",
+    "format": "DICOM (JPEG-compressed) + CSV boxes",
+    "description": "PhysioNet VinDr-CXR, pick 20 with bounding boxes.",
+    "license": "PhysioNet Credentialed Health Data License 1.5.0",
+    "citation": "Nguyen H.Q. et al. VinDr-CXR. Sci Data 2022;9:429. https://physionet.org/content/vindr-cxr/",
+    "matrix_rows": [
+      "CR/DX",
+      "CT compressed"
+    ],
+    "instructions": "Requires PhysioNet credentialing + signed DUA. Then:\nwget -r -N -c -np --user <physionet-user> --ask-password https://physionet.org/files/vindr-cxr/1.0.0/train/ (select ~20 files)\nplus annotations_train.csv; copy into sample-data/vindr-cxr/"
+  },
+  {
+    "id": "head-neck-petct-rt",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "PT + CT + RTSTRUCT",
+    "format": "DICOM",
+    "description": "TCIA Head-Neck-PET-CT.",
+    "license": "CC BY 3.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "PET / SUV / fusion",
+      "RTSTRUCT"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id head_neck_pet_ct --patient-id HN-CHUS-001 --download-dir sample-data/head-neck-petct-rt"
+  },
+  {
+    "id": "lung-pet-ct-dx",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "PT + CT",
+    "format": "DICOM",
+    "description": "TCIA Lung-PET-CT-Dx, 1 case.",
+    "license": "CC BY 4.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "PET / SUV / fusion"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id lung_pet_ct_dx --patient-id Lung_Dx-A0001 --download-dir sample-data/lung-pet-ct-dx"
+  },
+  {
+    "id": "nih-cxr14-png",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "DX",
+    "format": "PNG",
+    "description": "NIH ChestX-ray14, 10 PNGs.",
+    "license": "Public (NIH Clinical Center; cite)",
+    "citation": "Wang X. et al. ChestX-ray8. CVPR 2017. https://nihcc.app.box.com/v/ChestXray-NIHCC",
+    "matrix_rows": [
+      "PNG/JPEG"
+    ],
+    "instructions": "Download images_001.tar.gz from https://nihcc.app.box.com/v/ChestXray-NIHCC (Box; ~2 GB, no login) and copy 10 PNGs into sample-data/nih-cxr14-png/"
+  },
+  {
+    "id": "cbis-ddsm",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "MG",
+    "format": "DICOM (MONOCHROME1, 4-view)",
+    "description": "TCIA CBIS-DDSM, 2 exams.",
+    "license": "CC BY 3.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93. Lee R.S. et al. Sci Data 2017;4:170177.",
+    "matrix_rows": [
+      "MG"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id cbis_ddsm --patient-id <id> --download-dir sample-data/cbis-ddsm"
+  },
+  {
+    "id": "prostate-mri-us",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "MR + US",
+    "format": "DICOM",
+    "description": "TCIA Prostate-MRI-US-Biopsy, 1 case.",
+    "license": "CC BY 4.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "US",
+      "MR"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id prostate_mri_us_biopsy --patient-id <id> --download-dir sample-data/prostate-mri-us"
+  },
+  {
+    "id": "ohif-demo-xa",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "XA/RF/US",
+    "format": "DICOMweb (streamed)",
+    "description": "OHIF public DICOMweb demo server (behind viewer.ohif.org) for cine/multi-frame over WADO-RS.",
+    "license": "Demo use",
+    "citation": "OHIF Viewer, https://github.com/OHIF/Viewers",
+    "matrix_rows": [
+      "XA/RF cine"
+    ],
+    "instructions": "Endpoint https://d3t6nz73ql33tx.cloudfront.net/dicomweb did NOT respond (connection failed) when this manifest was built (2026-08-30);\ncheck the current URL in OHIF's platform/app/public/config/default.js and point the viewer's DICOMweb config at it. Fallback: synth-multiframe."
+  },
+  {
+    "id": "sunnybrook-cine",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "MR (cine)",
+    "format": "DICOM",
+    "description": "Sunnybrook Cardiac Data, 2 cases.",
+    "license": "Public domain (CC0)",
+    "citation": "Radau P. et al. MIDAS Journal 2009. https://www.cardiacatlas.org/sunnybrook-cardiac-data/",
+    "matrix_rows": [
+      "4D cardiac"
+    ],
+    "instructions": "Download 'SCD_DeidentifiedImages.zip' from https://www.cardiacatlas.org/sunnybrook-cardiac-data/ and copy 2 cases into sample-data/sunnybrook-cine/"
+  },
+  {
+    "id": "ixi-t1",
+    "tier": "P1",
+    "kind": "manual",
+    "modality": "MR",
+    "format": "NIfTI",
+    "description": "IXI T1/T2/PD for 5 shared subjects (also covers ixi-t2, ixi-pd).",
+    "license": "CC BY-SA 3.0",
+    "citation": "IXI dataset, https://brain-development.org/ixi-dataset/",
+    "matrix_rows": [
+      "NIfTI",
+      "MR"
+    ],
+    "instructions": "Direct tarballs (no login, 4.5 GB each): http://biomedic.doc.ic.ac.uk/brain-development/downloads/IXI/IXI-T1.tar , IXI-T2.tar , IXI-PD.tar\nExtract the same 5 subject IDs from each into sample-data/ixi/"
+  },
+  {
+    "id": "acdc-nifti",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "MR (cine)",
+    "format": "NIfTI 4D + labels",
+    "description": "ACDC challenge, 5 cases.",
+    "license": "CC BY-NC-SA 4.0",
+    "citation": "Bernard O. et al. IEEE TMI 2018. https://humanheart-project.creatis.insa-lyon.fr/database/",
+    "matrix_rows": [
+      "4D cardiac"
+    ],
+    "instructions": "Register at https://humanheart-project.creatis.insa-lyon.fr/database/ and download the ACDC training set; copy 5 patients into sample-data/acdc-nifti/"
+  },
+  {
+    "id": "isles-2022",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "MR (DWI/ADC/FLAIR)",
+    "format": "NIfTI + masks",
+    "description": "ISLES 2022, 5 cases.",
+    "license": "CC BY 4.0",
+    "citation": "Hernandez Petzsche M.R. et al. Sci Data 2022. Zenodo DOI 10.5281/zenodo.7153326",
+    "matrix_rows": [
+      "NIfTI"
+    ],
+    "instructions": "Download from https://zenodo.org/records/7153326 and copy 5 sub-strokecase folders into sample-data/isles-2022/"
+  },
+  {
+    "id": "verse-spine",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "CT",
+    "format": "NIfTI + labels",
+    "description": "VerSe 2020, 3 cases.",
+    "license": "CC BY 4.0",
+    "citation": "Sekuboyina A. et al. Med Image Anal 2021. https://osf.io/t98fz/",
+    "matrix_rows": [
+      "NIfTI"
+    ],
+    "instructions": "Download from https://osf.io/t98fz/ (OSF, no login) and copy 3 cases into sample-data/verse-spine/"
+  },
+  {
+    "id": "kits23",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "CT",
+    "format": "NIfTI + labels",
+    "description": "KiTS23, 3 cases.",
+    "license": "CC BY-NC-SA 4.0",
+    "citation": "Heller N. et al. KiTS23. https://kits-challenge.org/kits23/",
+    "matrix_rows": [
+      "NIfTI"
+    ],
+    "instructions": "pip install kits23; kits23_download_data  (or git clone https://github.com/neheller/kits23); copy 3 cases into sample-data/kits23/"
+  },
+  {
+    "id": "qin-breast-dce",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "MR (DCE 4D)",
+    "format": "DICOM",
+    "description": "TCIA QIN-Breast, 1 case.",
+    "license": "CC BY 3.0",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "4D"
+    ],
+    "instructions": "pip install idc-index  # then, e.g.:\nidc download --collection-id qin_breast --patient-id <id> --download-dir sample-data/qin-breast-dce"
+  },
+  {
+    "id": "idc-nm",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "NM",
+    "format": "DICOM",
+    "description": "IDC portal, Modality = NM, 1 series.",
+    "license": "per collection",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "NM"
+    ],
+    "instructions": "idc query \"SELECT collection_id, SeriesInstanceUID FROM index WHERE Modality='NM' LIMIT 5\"; idc download --series-instance-uid <uid> --download-dir sample-data/idc-nm"
+  },
+  {
+    "id": "idc-sr",
+    "tier": "P2",
+    "kind": "manual",
+    "modality": "SR",
+    "format": "DICOM SR (TID 1500)",
+    "description": "IDC collections with dcmqi SR measurement reports, 2 objects.",
+    "license": "per collection",
+    "citation": "Clark K. et al. The Cancer Imaging Archive (TCIA). J Digit Imaging. 2013;26(6):1045-57. IDC: Fedorov A. et al. NCI Imaging Data Commons. Cancer Res. 2021;81(16):4188-93.",
+    "matrix_rows": [
+      "RTDOSE / RTPLAN / SR"
+    ],
+    "instructions": "idc query \"SELECT collection_id, SeriesInstanceUID FROM index WHERE Modality='SR' LIMIT 5\"; idc download --series-instance-uid <uid> --download-dir sample-data/idc-sr"
+  }
+]

@@ -44,6 +44,13 @@ export interface OpenSeries {
   /** DICOM-SEG / RTSTRUCT and other derived objects are not displayable series. */
   isDerived: boolean;
   sopClassUID?: string;
+  seriesNumber?: number;
+  /** SEG / RTSTRUCT / SR / RTDOSE / … for derived objects. */
+  derivedKind?: string;
+  /** Why a stack could not become a volume, when applicable. */
+  geometryNote?: string;
+  /** For local volume files: display name. */
+  fileName?: string;
 }
 
 export interface OpenStudy {

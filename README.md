@@ -100,12 +100,25 @@ VITE_MONAI_SERVER_URL=http://localhost:8002
 
 ## Sample data
 
-No imaging data ships in this repo. To fetch public sample datasets for a quick try:
+No imaging data ships in this repo. A manifest-driven fetcher
+(`scripts/sample-data/manifest.json`, stdlib-only Python) downloads public,
+de-identified fixtures with SHA-256 verification into `./sample-data`
+(gitignored) and writes licence/citation notes to `sample-data/SOURCES.md`:
 
 ```bash
-./scripts/download-sample-data.sh          # downloads into ./sample-data (gitignored)
-./scripts/download-sample-data.sh --upload # also push DICOMs into a running Orthanc
+python3 scripts/sample-data/fetch.py                  # P0 + unit-test corpus (~100 MB)
+python3 scripts/sample-data/fetch.py --list           # show every fixture, tier and size
+python3 scripts/sample-data/fetch.py --fixture msd-spleen   # large/optional fixtures by id
+python3 scripts/sample-data/fetch.py --verify         # re-check hashes of what is present
+python3 scripts/sample-data/fetch.py --upload-to-orthanc http://localhost:8042
+python3 scripts/sample-data/synth.py                  # deterministic synthetic fixtures
 ```
+
+Fixtures that need a Kaggle/PhysioNet/TCIA account are marked `manual`; the
+fetcher prints the steps and never embeds credentials. `synth.py` generates
+known-geometry CT/DX/XA/RGB/SEG/RTSTRUCT test objects (see each fixture's
+`expected.json`); it needs pydicom, nibabel, SimpleITK and, for DICOM-SEG,
+highdicom.
 
 ---
 
