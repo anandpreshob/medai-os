@@ -609,7 +609,7 @@ services:
     ports:
       - "8042:8042"
     volumes:
-      - ./orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - ./orthanc/config:/etc/orthanc:ro
       - orthanc-db:/var/lib/orthanc/db
 
   # MONAI Label AI Server (main service)
