@@ -1,8 +1,8 @@
 # Tier 1 Verification Matrix — medical imaging viewer (`apps/viewer2`)
 
-Generated 2026-08-30T06:40:05.711Z from commit `23cb44a` by `apps/viewer2/scripts/render-matrix.mjs`. **Do not edit by hand** — change `e2e/matrix-rows.json` or the tests.
+Generated 2026-08-30T06:54:39.520Z from commit `9b39ec5` by `apps/viewer2/scripts/render-matrix.mjs`. **Do not edit by hand** — change `e2e/matrix-rows.json` or the tests.
 
-Playwright run: 50 passed, 0 failed, 0 skipped.
+Playwright run: 53 passed, 0 failed, 0 skipped.
 
 ## How to read this
 
@@ -30,8 +30,8 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 | NRRD .nrrd / .nhdr | P0 | ✅ | MR-head.nrrd loads as a volume; MR-head.nrrd loads as a volume; CT-chest.nrrd loads as a volume; CT-chest.nrrd loads as a volume; NIfTI, NRRD and MetaImage copies load with the same geometry; NIfTI, NRRD and MetaImage copies load with the same geometry |  |
 | Multi-component NRRD (DTI) refused with a clear message | P2 | ✅ | DTI-Brain.nrrd (9-component) is refused with a clear message; DTI-Brain.nrrd (9-component) is refused with a clear message |  |
 | MetaImage .mha | P1 | ✅ | NIfTI, NRRD and MetaImage copies load with the same geometry; NIfTI, NRRD and MetaImage copies load with the same geometry |  |
-| MetaImage .mhd + .raw pair | P1 | 🟡 | — | code path exists (header rewrite); no fixture test yet |
-| TIFF stack | P2 | 🟡 | — |  |
+| MetaImage .mhd + .raw pair | P1 | ✅ | MetaImage header + raw pair and 3D TIFF load with the same slice count; MetaImage header + raw pair and 3D TIFF load with the same slice count | code path exists (header rewrite); no fixture test yet |
+| TIFF stack | P2 | ✅ | MetaImage header + raw pair and 3D TIFF load with the same slice count; MetaImage header + raw pair and 3D TIFF load with the same slice count |  |
 | PNG / JPEG (non-DICOM 2D) | P1 | ⚫ | — | not ported to viewer2 yet |
 
 ## B. DICOM modalities & IODs
@@ -39,16 +39,16 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 | Row | Pri | Status | Verified by | Note |
 |---|---|---|---|---|
 | CT, uncompressed single-frame series | P0 | ✅ | CT_small.dcm — CT explicit little endian; CT_small.dcm — CT explicit little endian; 693_UNCI.dcm — uncompressed pair of 693_J2KI; 693_UNCI.dcm — uncompressed pair of 693_J2KI; HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR |  |
-| Compressed transfer syntaxes: RLE, JPEG-LS, JPEG 2000 (lossless/lossy), JPEG lossless, JPEG 12-bit | P0 | ✅ | MR_small_RLE.dcm — RLE lossless; MR_small_RLE.dcm — RLE lossless; MR_small_jp2klossless.dcm — JPEG 2000 lossless; MR_small_jp2klossless.dcm — JPEG 2000 lossless; MR_small_jpeg_ls_lossless.dcm — JPEG-LS lossless; MR_small_jpeg_ls_lossless.dcm — JPEG-LS lossless; JPEG2000.dcm — JPEG 2000; JPEG2000.dcm — JPEG 2000; JPEG-LL.dcm — JPEG lossless; JPEG-LL.dcm — JPEG lossless; JPEG-lossy.dcm — JPEG baseline 12-bit; JPEG-lossy.dcm — JPEG baseline 12-bit; 693_J2KI.dcm — JPEG 2000 lossy; 693_J2KI.dcm — JPEG 2000 lossy; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K; US1_J2KR.dcm — Ultrasound RGB, J2K reversible; US1_J2KR.dcm — Ultrasound RGB, J2K reversible; US1_J2KI.dcm — Ultrasound RGB, J2K irreversible; US1_J2KI.dcm — Ultrasound RGB, J2K irreversible |  |
+| Compressed transfer syntaxes: RLE, JPEG-LS, JPEG 2000 (lossless/lossy), JPEG lossless, JPEG 12-bit | P0 | ✅ | MR_small_RLE.dcm — RLE lossless; MR_small_RLE.dcm — RLE lossless; MR_small_jp2klossless.dcm — JPEG 2000 lossless; MR_small_jp2klossless.dcm — JPEG 2000 lossless; MR_small_jpeg_ls_lossless.dcm — JPEG-LS lossless; MR_small_jpeg_ls_lossless.dcm — JPEG-LS lossless; JPEG2000.dcm — JPEG 2000; JPEG2000.dcm — JPEG 2000; JPEG-LL.dcm — JPEG lossless; JPEG-LL.dcm — JPEG lossless; JPEG-lossy.dcm — JPEG baseline 12-bit; JPEG-lossy.dcm — JPEG baseline 12-bit; 693_J2KI.dcm — JPEG 2000 lossy; 693_J2KI.dcm — JPEG 2000 lossy; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K; US1_J2KR.dcm — Ultrasound RGB, J2K reversible; US1_J2KR.dcm — Ultrasound RGB, J2K reversible; US1_J2KI.dcm — Ultrasound RGB, J2K irreversible; US1_J2KI.dcm — Ultrasound RGB, J2K irreversible; decodes the JPEG frame: lungs dark, mediastinum bright; decodes the JPEG frame: lungs dark, mediastinum bright |  |
 | MR, classic single-frame | P0 | ✅ | MR_small.dcm — MR explicit little endian; MR_small.dcm — MR explicit little endian; MRHead DICOM series (130 slices, sagittal); MRHead DICOM series (130 slices, sagittal) |  |
 | Enhanced MR multi-frame (incl. RLE, J2K, big-endian encodings) | P0 | ✅ | emri_small.dcm — Enhanced MR multi-frame; emri_small.dcm — Enhanced MR multi-frame; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_RLE.dcm — Enhanced MR, RLE; emri_small_big_endian.dcm — Enhanced MR, big endian; emri_small_big_endian.dcm — Enhanced MR, big endian; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K; emri_small_jpeg_2k_lossless.dcm — Enhanced MR, J2K |  |
 | MR multi-sequence hanging (T1/T2/FLAIR side by side) | P1 | ⚫ | — | 1x2/2x2 layouts exist; no automatic hanging protocol |
 | PET without SUV scaling: detected, relative presets, SUV presets refused | P0 | ✅ | COMUNIX: PET and CT side by side; COMUNIX: PET and CT side by side |  |
-| PET with SUV(bw) pre-scaling (weight, dose, timing present) | P0 | 🟡 | — | loader supports it; no public fixture with complete PET header in the P0 set (AutoPET is manual) |
+| PET with SUV(bw) pre-scaling (weight, dose, timing present) | P0 | ✅ | PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available; PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available | loader supports it; no public fixture with complete PET header in the P0 set (AutoPET is manual) |
 | PET/CT fusion overlay | P0 | ⚫ | — | side-by-side works; blended overlay not built yet |
-| CR / DX projection radiograph | P0 | ✅ | high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it |  |
+| CR / DX projection radiograph | P0 | ✅ | high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it; decodes the JPEG frame: lungs dark, mediastinum bright; decodes the JPEG frame: lungs dark, mediastinum bright |  |
 | MONOCHROME1 (inverted display, MG-style) | P0 | ✅ | high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it |  |
-| CR / DX with JPEG-compressed pixel data (real-world) | P0 | 🟡 | — | codecs verified on the corpus; VinDr-CXR fixture is credentialed (manual) |
+| CR / DX with JPEG-compressed pixel data (real-world) | P0 | ✅ | decodes the JPEG frame: lungs dark, mediastinum bright; decodes the JPEG frame: lungs dark, mediastinum bright | codecs verified on the corpus; VinDr-CXR fixture is credentialed (manual) |
 | Mammography 4-view hanging (CC/MLO L/R) | P1 | ⚫ | — | MONOCHROME1 verified; no MG hanging protocol; CBIS-DDSM is manual |
 | Ultrasound RGB (uncompressed and J2K) | P1 | ✅ | US1_UNCR.dcm — Ultrasound RGB uncompressed; US1_UNCR.dcm — Ultrasound RGB uncompressed; US1_J2KR.dcm — Ultrasound RGB, J2K reversible; US1_J2KR.dcm — Ultrasound RGB, J2K reversible; US1_J2KI.dcm — Ultrasound RGB, J2K irreversible; US1_J2KI.dcm — Ultrasound RGB, J2K irreversible |  |
 | XA / RF multi-frame cine | P1 | ✅ | expands frames, starts at frame 1, and cine advances; expands frames, starts at frame 1, and cine advances |  |
@@ -83,7 +83,7 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 | Stack viewport (native 2D / multi-frame) | P0 | ✅ | expands frames, starts at frame 1, and cine advances; expands frames, starts at frame 1, and cine advances; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR |  |
 | MPR axial / sagittal / coronal from a volume | P0 | ✅ | MRHead DICOM series (130 slices, sagittal); MRHead DICOM series (130 slices, sagittal); HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; sorts and labels correctly and builds an MPR volume; sorts and labels correctly and builds an MPR volume; reports spacing and thickness and reformats with the right geometry; reports spacing and thickness and reformats with the right geometry |  |
 | 3D volume rendering with presets | P1 | ✅ | MRHead DICOM series (130 slices, sagittal); MRHead DICOM series (130 slices, sagittal) |  |
-| Window/level from DICOM VOI, presets by modality | P0 | ✅ | HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR |  |
+| Window/level from DICOM VOI, presets by modality | P0 | ✅ | HN_P001: CT + RTSTRUCT + RTDOSE; HN_P001: CT + RTSTRUCT + RTDOSE; high values render dark on a light background; invert flips it; high values render dark on a light background; invert flips it; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available; PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available |  |
 | Orientation labels from direction cosines / camera | P0 | ✅ | MRHead DICOM series (130 slices, sagittal); MRHead DICOM series (130 slices, sagittal); loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; sorts and labels correctly and builds an MPR volume; sorts and labels correctly and builds an MPR volume |  |
 | Scale bar from viewport geometry | P0 | ✅ | loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; reports spacing and thickness and reformats with the right geometry; reports spacing and thickness and reformats with the right geometry |  |
 | Patient / series / slice / spacing overlays | P0 | ✅ | loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; loads the series, applies header VOI, labels orientation, scrolls and reaches MPR; reports spacing and thickness and reformats with the right geometry; reports spacing and thickness and reformats with the right geometry |  |
@@ -102,8 +102,8 @@ P0 = must hold before Phase 2 · P1 = Phase 1–2 · P2 = later · out = out of 
 
 ## Summary
 
-- Rows: 66 — ✅ 47 · 🟡 7 · ⚫ 12
-- P0 rows: 35 — verified 30, remaining: PET with SUV(bw) pre-scaling (weight, dose, timing present) (🟡), PET/CT fusion overlay (⚫), CR / DX with JPEG-compressed pixel data (real-world) (🟡), DICOM-SEG overlay display (⚫), RTSTRUCT contour display (⚫)
+- Rows: 66 — ✅ 51 · ⚫ 12 · 🟡 3
+- P0 rows: 35 — verified 32, remaining: PET/CT fusion overlay (⚫), DICOM-SEG overlay display (⚫), RTSTRUCT contour display (⚫)
 
 ## Exit criteria for Phase 1
 

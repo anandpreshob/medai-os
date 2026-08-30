@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-30T06:40:05.711Z",
-  "commit": "23cb44a",
+  "generatedAt": "2026-08-30T06:54:39.520Z",
+  "commit": "9b39ec5",
   "counts": {
-    "passed": 50,
+    "passed": 53,
     "failed": 0,
     "skipped": 0
   },
@@ -194,8 +194,19 @@
       "priority": "P1",
       "default": "untested",
       "note": "code path exists (header rewrite); no fixture test yet",
-      "status": "untested",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "MetaImage header + raw pair and 3D TIFF load with the same slice count",
+          "file": "fixtures/synth-ct-cube.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "MetaImage header + raw pair and 3D TIFF load with the same slice count",
+          "file": "fixtures/synth-ct-cube.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "fmt-tiff",
@@ -203,8 +214,19 @@
       "label": "TIFF stack",
       "priority": "P2",
       "default": "untested",
-      "status": "untested",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "MetaImage header + raw pair and 3D TIFF load with the same slice count",
+          "file": "fixtures/synth-ct-cube.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "MetaImage header + raw pair and 3D TIFF load with the same slice count",
+          "file": "fixtures/synth-ct-cube.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "fmt-png-jpeg",
@@ -383,6 +405,16 @@
           "title": "US1_J2KI.dcm — Ultrasound RGB, J2K irreversible",
           "file": "fixtures/pydicom-corpus.spec.ts",
           "status": "passed"
+        },
+        {
+          "title": "decodes the JPEG frame: lungs dark, mediastinum bright",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "decodes the JPEG frame: lungs dark, mediastinum bright",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
         }
       ]
     },
@@ -503,8 +535,19 @@
       "priority": "P0",
       "default": "untested",
       "note": "loader supports it; no public fixture with complete PET header in the P0 set (AutoPET is manual)",
-      "status": "untested",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "pet-ct-fusion",
@@ -532,6 +575,16 @@
         {
           "title": "high values render dark on a light background; invert flips it",
           "file": "fixtures/synth-2d.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "decodes the JPEG frame: lungs dark, mediastinum bright",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "decodes the JPEG frame: lungs dark, mediastinum bright",
+          "file": "fixtures/synth-petct.spec.ts",
           "status": "passed"
         }
       ]
@@ -563,8 +616,19 @@
       "priority": "P0",
       "default": "untested",
       "note": "codecs verified on the corpus; VinDr-CXR fixture is credentialed (manual)",
-      "status": "untested",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        {
+          "title": "decodes the JPEG frame: lungs dark, mediastinum bright",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "decodes the JPEG frame: lungs dark, mediastinum bright",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        }
+      ]
     },
     {
       "id": "mg",
@@ -1271,6 +1335,16 @@
         {
           "title": "loads the series, applies header VOI, labels orientation, scrolls and reaches MPR",
           "file": "fixtures/synth-ct-cube.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available",
+          "file": "fixtures/synth-petct.spec.ts",
+          "status": "passed"
+        },
+        {
+          "title": "PET is pre-scaled to SUVbw: hot sphere ≈ 8, background ≈ 1, SUV presets available",
+          "file": "fixtures/synth-petct.spec.ts",
           "status": "passed"
         }
       ]
