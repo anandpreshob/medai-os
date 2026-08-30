@@ -66,6 +66,22 @@ test.describe('synth-ct-cube (local DICOM series)', () => {
     expect(cap.errors, cap.errors.join('\n')).toEqual([]);
   });
 
+  test('MetaImage header + raw pair and 3D TIFF load with the same slice count', async ({ page }) => {
+    matrix('fmt-mhd-raw', 'fmt-tiff');
+    const cases: { name: string; files: string[] }[] = [
+      { name: 'mhd+raw', files: ['synth-ct-cube.mhd', 'synth-ct-cube.raw'] },
+      { name: 'tif', files: ['synth-ct-cube.tif'] },
+    ];
+    for (const c of cases) {
+      if (!c.files.every((f) => hasFixture(FIX, f))) continue;
+      const cap = captureConsole(page);
+      await openLocalFiles(page, c.files.map((f) => fixturePath(FIX, f)));
+      await expect(page.getByTestId('viewer-error')).toBeHidden();
+      await expect(viewport(page)).toHaveAttribute('data-slice-count', String(expected.slice_count), { timeout: 30_000 });
+      expect(cap.errors, `${c.name}: ${cap.errors.join('\n')}`).toEqual([]);
+    }
+  });
+
   test('NIfTI, NRRD and MetaImage copies load with the same geometry', async ({ page }) => {
     matrix('fmt-nifti', 'fmt-nrrd', 'fmt-mha');
     for (const file of ['synth-ct-cube.nii.gz', 'synth-ct-cube.nrrd', 'synth-ct-cube.mha']) {
