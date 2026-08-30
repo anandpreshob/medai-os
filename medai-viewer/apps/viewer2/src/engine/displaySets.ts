@@ -94,12 +94,13 @@ export function buildDisplaySets(imageIds: string[], opts: BuildOptions): OpenSt
   const ref = imageIds[0];
   const st = md.study(ref) ?? {};
   const pt = md.patient(ref) ?? {};
+  const nat = md.naturalized(ref) ?? {};
   return {
-    studyInstanceUID: st.studyInstanceUID ?? md.series(ref)?.studyInstanceUID ?? 'local',
-    patientName: personName(pt.patientName),
-    patientID: pt.patientId ?? '',
-    studyDate: st.studyDate ?? '',
-    studyDescription: st.studyDescription ?? '',
+    studyInstanceUID: st.studyInstanceUID ?? md.series(ref)?.studyInstanceUID ?? (nat.StudyInstanceUID as string | undefined) ?? 'local',
+    patientName: personName(pt.patientName ?? nat.PatientName),
+    patientID: pt.patientId ?? (nat.PatientID as string | undefined) ?? '',
+    studyDate: st.studyDate ?? (nat.StudyDate as string | undefined) ?? '',
+    studyDescription: st.studyDescription ?? (nat.StudyDescription as string | undefined) ?? '',
     series,
   };
 }

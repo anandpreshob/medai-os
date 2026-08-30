@@ -3,6 +3,7 @@ import { wadouri } from '@cornerstonejs/dicom-image-loader';
 import { utilities as mdUtils } from '@cornerstonejs/metadata';
 import type { OpenStudy } from '../../state/session';
 import { buildDisplaySets } from '../displaySets';
+import { NON_IMAGE_SOP_CLASSES } from '../metadata';
 
 export interface LocalLoadResult {
   study: OpenStudy | null;
@@ -10,12 +11,28 @@ export interface LocalLoadResult {
   skipped: { name: string; reason: string }[];
 }
 
-async function isDicom(file: File): Promise<boolean> {
+function byteLength(v: unknown): number {
+  if (!v) return 0;
+  if (v instanceof ArrayBuffer) return v.byteLength;
+  if (ArrayBuffer.isView(v)) return v.byteLength;
+  if (Array.isArray(v)) return v.reduce((n: number, x) => n + byteLength(x), 0);
+  return typeof v === 'string' ? v.length : 1;
+}
+
+function hasPixelData(nat: Record<string, unknown>): boolean {
+  return byteLength(nat.PixelData) > 0 || byteLength(nat.FloatPixelData) > 0 || byteLength(nat.DoubleFloatPixelData) > 0;
+}
+
+/** SEG/RTSTRUCT/SR/… legitimately carry no PixelData; only image IODs must have it. */
+function isNonImageObject(nat: Record<string, unknown>): boolean {
+  const sop = String(nat.SOPClassUID ?? '');
+  return sop in NON_IMAGE_SOP_CLASSES || !('Rows' in nat);
+}
+
+async function hasDicmMagic(file: File): Promise<boolean> {
   if (file.size < 132) return false;
   const head = new Uint8Array(await file.slice(128, 132).arrayBuffer());
-  if (head[0] === 0x44 && head[1] === 0x49 && head[2] === 0x43 && head[3] === 0x4d) return true;
-  // Some files (e.g. pydicom's no_meta.dcm) lack the preamble; accept by extension and let the parser decide.
-  return /\.(dcm|dicom)$/i.test(file.name);
+  return head[0] === 0x44 && head[1] === 0x49 && head[2] === 0x43 && head[3] === 0x4d;
 }
 
 /**
@@ -29,7 +46,8 @@ export async function loadLocalDicomFiles(files: File[], onProgress?: (done: num
   let done = 0;
   for (const file of files) {
     done++;
-    if (!(await isDicom(file))) {
+    // Files without the preamble (old GE/raw exports) are accepted by extension; the parser decides.
+    if (!(await hasDicmMagic(file)) && !/\.(dcm|dicom)$/i.test(file.name)) {
       skipped.push({ name: file.name, reason: 'not a DICOM file' });
       continue;
     }
@@ -37,9 +55,12 @@ export async function loadLocalDicomFiles(files: File[], onProgress?: (done: num
     try {
       const buffer = await file.arrayBuffer();
       await mdUtils.addDicomPart10Instance(imageId, buffer);
-      if (!metaData.get('naturalized', imageId)) {
+      const nat = metaData.get('naturalized', imageId) as Record<string, unknown> | undefined;
+      if (!nat) {
         // Fallback: let the loader parse it (also decodes one frame).
         await imageLoader.loadAndCacheImage(imageId);
+      } else if (!hasPixelData(nat) && !isNonImageObject(nat)) {
+        throw new Error('no pixel data found');
       }
       imageIds.push(imageId);
     } catch (e) {

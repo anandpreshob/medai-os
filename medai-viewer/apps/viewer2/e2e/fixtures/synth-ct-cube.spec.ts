@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, sliceInfo, viewport, windowLevel } from '../helpers';
+import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, sliceInfo, viewport, waitForVolumes, windowLevel } from '../helpers';
 
 /**
  * Matrix rows: "CT (uncompressed, single-frame series)", "DICOM folder", "Window/level from DICOM VOI",
@@ -60,6 +60,7 @@ test.describe('synth-ct-cube (local DICOM series)', () => {
     await expect(page.locator('[data-testid="viewport-2"] [data-testid="orient-top"]')).toHaveText('S');
     await expect(page.locator('[data-testid="viewport-2"] [data-testid="orient-right"]')).toHaveText('L');
 
+    await waitForVolumes(page);
     await page.screenshot({ path: 'test-results/synth-ct-cube-mpr.png' });
     expect(cap.errors, cap.errors.join('\n')).toEqual([]);
   });

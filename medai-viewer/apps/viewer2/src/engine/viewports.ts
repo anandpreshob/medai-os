@@ -1,4 +1,4 @@
-import { RenderingEngine, Enums, cache, utilities, volumeLoader, type Types } from '@cornerstonejs/core';
+import { RenderingEngine, Enums, cache, eventTarget, imageLoader, utilities, volumeLoader, type Types } from '@cornerstonejs/core';
 import {
   ToolGroupManager,
   Enums as ToolEnums,
@@ -102,8 +102,37 @@ export class ViewportManager {
   private listeners = new Map<number, Set<() => void>>();
   /** Bumped whenever a slot is detached/cleared/re-shown so in-flight show() calls abort quietly. */
   private generation = new Map<number, number>();
+  /** imageId → message for loads that failed inside Cornerstone's async pipeline. */
+  private failed = new Map<string, string>();
+  private failureListenerInstalled = false;
+
+  private installFailureListener(): void {
+    if (this.failureListenerInstalled) return;
+    this.failureListenerInstalled = true;
+    const onFail = (evt: Event) => {
+      const detail = (evt as CustomEvent<{ imageId?: string; error?: { message?: string } | string }>).detail ?? {};
+      const message = typeof detail.error === 'string' ? detail.error : detail.error?.message ?? 'image failed to load';
+      if (detail.imageId) this.failed.set(detail.imageId, message);
+      for (const i of this.slots.keys()) this.emit(i);
+    };
+    eventTarget.addEventListener(Enums.Events.IMAGE_LOAD_FAILED, onFail);
+    eventTarget.addEventListener(Enums.Events.IMAGE_LOAD_ERROR, onFail);
+    eventTarget.addEventListener(Enums.Events.IMAGE_VOLUME_LOADING_COMPLETED, (evt: Event) => {
+      const volumeId = (evt as CustomEvent<{ volumeId?: string }>).detail?.volumeId;
+      if (!volumeId) return;
+      this.volumeProgress.set(volumeId, 100);
+      for (const [k, v] of this.slots) if (v.displaySetId && this.volumeIds.get(v.displaySetId) === volumeId) this.emit(k);
+    });
+  }
+
+  /** Load failure for the image currently shown in a slot, if any. */
+  loadError(i: number): string | undefined {
+    const id = this.currentImageId(i);
+    return id ? this.failed.get(id) : undefined;
+  }
 
   private engine(): RenderingEngine {
+    this.installFailureListener();
     return (this.re ??= new RenderingEngine(ENGINE_ID));
   }
 
@@ -208,6 +237,13 @@ export class ViewportManager {
     if (kind === 'stack') {
       const sv = re.getViewport(s.viewportId) as Types.IStackViewport;
       const start = series.isCine ? 0 : Math.floor(series.imageIds.length / 2);
+      // Decode the first image inside our own await: Cornerstone's stack loader rejects unhandled otherwise.
+      try {
+        await imageLoader.loadAndCacheImage(series.imageIds[start]);
+      } catch (e) {
+        throw new Error(`Cannot decode ${series.description}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      if (!alive()) return;
       await sv.setStack(series.imageIds, start);
       if (!alive()) return;
       sv.render();
@@ -239,12 +275,25 @@ export class ViewportManager {
   /** Volume for a series, created and streaming on first use. */
   async ensureVolume(series: OpenSeries): Promise<string> {
     const existing = series.volumeId ?? this.volumeIds.get(series.id);
-    if (existing && cache.getVolume(existing)) return existing;
+    if (existing && cache.getVolume(existing)) {
+      this.volumeIds.set(series.id, existing);
+      if (!this.volumeProgress.has(existing)) this.volumeProgress.set(existing, 100);
+      return existing;
+    }
     if (series.imageIds.length === 0) throw new Error(`${series.description}: no images to build a volume from`);
     const volumeId = `cornerstoneStreamingImageVolume:${series.id}`;
     const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds: series.imageIds });
-    volume.load();
     this.volumeIds.set(series.id, volumeId);
+    this.volumeProgress.set(volumeId, 0);
+    const total = series.imageIds.length;
+    let loaded = 0;
+    (volume as unknown as { load: (cb?: (evt: unknown) => void) => void }).load((evt) => {
+      const e = (evt ?? {}) as { framesLoaded?: number; framesProcessed?: number; numFrames?: number; totalNumFrames?: number };
+      loaded = Math.max(loaded, e.framesLoaded ?? e.framesProcessed ?? loaded + 1);
+      const denom = e.totalNumFrames ?? e.numFrames ?? total;
+      this.volumeProgress.set(volumeId, Math.min(100, Math.round((loaded / Math.max(1, denom)) * 100)));
+      for (const [k, v] of this.slots) if (v.displaySetId === series.id) this.emit(k);
+    });
     return volumeId;
   }
 
@@ -308,6 +357,26 @@ export class ViewportManager {
       if (v > max) max = v;
     }
     return { min, max };
+  }
+
+  /** True when the displayed PET image was pre-scaled to SUV (body weight) by the loader. */
+  isSuvScaled(i: number): boolean {
+    const id = this.currentImageId(i);
+    const img = id ? cache.getImage(id) : undefined;
+    if (!img) return false;
+    const helper = (utilities as unknown as { isPTPrescaledWithSUV?: (image: unknown) => boolean }).isPTPrescaledWithSUV;
+    if (helper) return Boolean(helper(img));
+    const pre = (img as unknown as { preScale?: { scalingParameters?: { suvbw?: number } } }).preScale;
+    return Boolean(pre?.scalingParameters?.suvbw);
+  }
+
+  /** Streaming progress (0–100) of the volume shown in a slot; 100 for stacks and fully loaded volumes. */
+  private volumeProgress = new Map<string, number>();
+  progress(i: number): number {
+    const s = this.slots.get(i);
+    if (!s?.kind || s.kind === 'stack') return 100;
+    const volumeId = s.displaySetId ? this.volumeIds.get(s.displaySetId) : undefined;
+    return volumeId ? this.volumeProgress.get(volumeId) ?? 0 : 100;
   }
 
   /** Modality of the series in a slot, from metadata of the current image. */

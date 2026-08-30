@@ -7,6 +7,7 @@ import { dicomWeb } from '../lib/dicomweb';
 export function UploadPage() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dirRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ kind: 'idle' | 'busy' | 'done' | 'error'; text: string }>({ kind: 'idle', text: '' });
 
   const upload = useCallback(async (files: FileList | File[]) => {
@@ -55,11 +56,17 @@ export function UploadPage() {
       >
         <Upload size={28} />
         <div>Drop DICOM files or a folder here</div>
-        <button className="btn" onClick={() => inputRef.current?.click()}>
-          Choose files
-        </button>
+        <div className="flex gap-2">
+          <button className="btn" onClick={() => inputRef.current?.click()} data-testid="upload-choose-files">
+            Choose files
+          </button>
+          <button className="btn" onClick={() => dirRef.current?.click()} data-testid="upload-choose-folder">
+            Choose folder
+          </button>
+        </div>
+        <input ref={inputRef} type="file" multiple hidden onChange={(e) => e.target.files && void upload(e.target.files)} data-testid="upload-file-input" />
         <input
-          ref={inputRef}
+          ref={dirRef}
           type="file"
           multiple
           hidden

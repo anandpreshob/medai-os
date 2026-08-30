@@ -59,7 +59,7 @@ export function Toolbar({ onBack }: { onBack: () => void }) {
   const [help, setHelp] = useState(false);
   const series = getSeries(slotSeries);
   const modality = viewports.modality(activeSlot) ?? series?.modality ?? 'OT';
-  const { presets } = presetsForModality(modality);
+  const { presets } = presetsForModality(modality, { suvScaled: viewports.isSuvScaled(activeSlot) });
   const mprOk = !!series?.isVolumetric;
 
   return (

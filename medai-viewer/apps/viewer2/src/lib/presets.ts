@@ -45,12 +45,19 @@ export const PET_PRESETS: WindowPreset[] = [
   { id: 'pt-suv-0-20', name: 'SUV 0–20', width: 20, center: 10, key: '3' },
 ];
 
-export function presetsForModality(modality: string): { presets: WindowPreset[]; relative: boolean } {
+/** PET without SUV scaling (missing weight/dose/time) falls back to range-relative windows. */
+export const PET_RAW_PRESETS: WindowPreset[] = [
+  { id: 'pt-full', name: 'Full range (not SUV-scaled)', width: 1, center: 0.5, key: '1' },
+  { id: 'pt-tight', name: 'Tight (1–99 %)', width: 0.98, center: 0.5, key: '2' },
+  { id: 'pt-hot', name: 'Hot spots', width: 0.3, center: 0.85, key: '3' },
+];
+
+export function presetsForModality(modality: string, opts: { suvScaled?: boolean } = {}): { presets: WindowPreset[]; relative: boolean } {
   switch (modality.toUpperCase()) {
     case 'CT':
       return { presets: CT_PRESETS, relative: false };
     case 'PT':
-      return { presets: PET_PRESETS, relative: false };
+      return opts.suvScaled ? { presets: PET_PRESETS, relative: false } : { presets: PET_RAW_PRESETS, relative: true };
     case 'MR':
       return { presets: MR_PRESETS, relative: true };
     case 'CR':

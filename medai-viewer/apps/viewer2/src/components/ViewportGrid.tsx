@@ -87,6 +87,9 @@ function ViewportPane({ slot }: { slot: number }) {
   const labels = overlays.orientation ? viewports.orientationLabels(slot) : { left: '', right: '', top: '', bottom: '' };
   const scale = overlays.scaleBar ? scaleBarFor(viewports.mmPerPixel(slot)) : null;
   const isActive = activeSlot === slot;
+  const loadError = viewports.loadError(slot);
+  const progress = viewports.progress(slot);
+  const suv = series?.modality === 'PT' ? (viewports.isSuvScaled(slot) ? 'SUV (bw)' : 'raw counts — no SUV scaling') : '';
   void tick;
 
   return (
@@ -100,6 +103,7 @@ function ViewportPane({ slot }: { slot: number }) {
       data-slice-count={slice.count}
       data-window-width={wl ? Math.round(wl.width) : ''}
       data-window-center={wl ? Math.round(wl.center) : ''}
+      data-volume-progress={progress}
     >
       <div ref={ref} className="cs-viewport" onContextMenu={(e) => e.preventDefault()} />
       {series && overlays.patientInfo && study && (
@@ -121,6 +125,7 @@ function ViewportPane({ slot }: { slot: number }) {
           <div className="overlay-corner left-2 bottom-1.5" data-testid="overlay-bottom-left">
             {slice.count > 0 ? `${slice.index + 1} / ${slice.count}` : ''}
             {wl ? `\nW ${Math.round(wl.width)}  L ${Math.round(wl.center)}` : ''}
+            {suv ? `\n${suv}` : ''}
           </div>
           <div className="overlay-corner right-2 bottom-1.5 text-right" data-testid="overlay-bottom-right">
             {`Zoom ${zoom.toFixed(2)}×`}
@@ -143,10 +148,15 @@ function ViewportPane({ slot }: { slot: number }) {
           <div className="overlay-corner static text-[10px] mt-0.5">{scale.mm >= 10 ? `${scale.mm / 10} cm` : `${scale.mm} mm`}</div>
         </div>
       )}
+      {series && progress < 100 && (
+        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-surface-3" data-testid="volume-progress">
+          <div className="h-full bg-accent transition-[width]" style={{ width: `${progress}%` }} />
+        </div>
+      )}
       {!series && <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-xs pointer-events-none">Empty — pick a series</div>}
-      {error && (
+      {(error || loadError) && (
         <div className="absolute inset-x-2 top-8 p-2 rounded bg-surface border border-bad/40 text-bad text-xs" data-testid="viewport-error">
-          {error}
+          {error ?? `Could not decode this image: ${loadError}`}
         </div>
       )}
     </div>

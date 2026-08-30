@@ -36,12 +36,18 @@ export interface ConsoleCapture {
 }
 
 /** Collect page errors and console errors; call before navigation. */
+/** Upstream library chatter that is not an application error. Keep this list short and justified. */
+const BENIGN_CONSOLE_ERRORS = [
+  /Invalid vr type ox - using OW/, // dcmjs naturalizing PixelData declared with VR "ox" (valid DICOM); cosmetic
+];
+
 export function captureConsole(page: Page): ConsoleCapture {
   const cap: ConsoleCapture = { errors: [], warnings: [] };
   page.on('pageerror', (e) => cap.errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
-    if (m.type() === 'error') cap.errors.push(m.text());
-    if (m.type() === 'warning') cap.warnings.push(m.text());
+    const text = m.text();
+    if (m.type() === 'error' && !BENIGN_CONSOLE_ERRORS.some((re) => re.test(text))) cap.errors.push(text);
+    if (m.type() === 'warning') cap.warnings.push(text);
   });
   return cap;
 }
@@ -57,10 +63,20 @@ export async function openLocalFiles(page: Page, paths: string[]): Promise<void>
 export async function waitForViewer(page: Page): Promise<void> {
   await expect(page.getByTestId('viewer-page')).toBeVisible();
   await expect(page.getByTestId('loading')).toBeHidden({ timeout: 60_000 });
-  // Either an error surfaced or the first viewport rendered something.
-  await expect(page.getByTestId('viewer-error').or(page.locator('[data-testid="viewport-0"][data-slice-count]:not([data-slice-count="0"])'))).toBeVisible({
-    timeout: 60_000,
-  });
+  // Either an error surfaced, the first viewport rendered something, or only non-image objects were found.
+  await expect(
+    page
+      .getByTestId('viewer-error')
+      .or(page.getByTestId('viewport-error'))
+      .or(page.locator('[data-testid="viewport-0"][data-slice-count]:not([data-slice-count="0"])'))
+      .or(page.locator('[data-testid="series-item"][data-derived="true"]'))
+      .first(),
+  ).toBeVisible({ timeout: 60_000 });
+}
+
+/** Wait until every visible viewport's volume has finished streaming. */
+export async function waitForVolumes(page: Page, timeout = 120_000): Promise<void> {
+  await expect(page.locator('[data-testid^="viewport-"][data-volume-progress]:not([data-volume-progress="100"])')).toHaveCount(0, { timeout });
 }
 
 export function viewport(page: Page, slot = 0): Locator {

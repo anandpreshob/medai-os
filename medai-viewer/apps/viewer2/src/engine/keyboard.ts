@@ -71,7 +71,7 @@ export function installKeyboard(): () => void {
     if (/^[1-8]$/.test(combo)) {
       const slot = useSession.getState().activeSlot;
       const modality = viewports.modality(slot) ?? 'OT';
-      const preset = presetsForModality(modality).presets.find((p) => p.key === combo);
+      const preset = presetsForModality(modality, { suvScaled: viewports.isSuvScaled(slot) }).presets.find((p) => p.key === combo);
       if (preset) return run('viewer.applyPreset', { presetId: preset.id });
       return;
     }

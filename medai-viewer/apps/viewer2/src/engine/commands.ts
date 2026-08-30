@@ -130,9 +130,12 @@ export const VIEWER_COMMANDS: CommandDefinition<any, any>[] = [
     run: ({ presetId }: { presetId: string }) => {
       const slot = active();
       const modality = viewports.modality(slot) ?? getSeries(useSession.getState().slots[slot])?.modality ?? 'OT';
-      const { presets, relative } = presetsForModality(modality);
+      const { presets, relative } = presetsForModality(modality, { suvScaled: viewports.isSuvScaled(slot) });
       const preset = presets.find((p) => p.id === presetId);
-      if (!preset) throw new Error(`No preset ${presetId} for ${modality}. Available: ${presets.map((p) => p.id).join(', ')}`);
+      if (!preset) {
+        const why = modality === 'PT' && !viewports.isSuvScaled(slot) ? ' (this PET is not SUV-scaled: weight, dose or timing missing)' : '';
+        throw new Error(`No preset ${presetId} for ${modality}${why}. Available: ${presets.map((p) => p.id).join(', ')}`);
+      }
       const range = relative ? viewports.pixelRange(slot) : undefined;
       if (relative && !range) throw new Error('Image range not available yet');
       const { width, center } = resolvePreset(preset, relative, range ?? { min: 0, max: 1 });
