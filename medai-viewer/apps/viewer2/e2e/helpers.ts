@@ -1,9 +1,14 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** Declare which verification-matrix rows the current test verifies (see e2e/matrix-rows.json). */
+export function matrix(...rows: string[]): void {
+  for (const r of rows) test.info().annotations.push({ type: 'matrix', description: r });
+}
 
 /** Repo-root `sample-data/` (gitignored; populated by `scripts/sample-data/fetch.py` + `synth.py`). */
 export const SAMPLE_DATA = resolve(HERE, '../../../../sample-data');

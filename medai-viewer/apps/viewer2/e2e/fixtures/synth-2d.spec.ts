@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { canvasPixel, captureConsole, fixturePath, hasFixture, openLocalFiles, runCommand, viewport, windowLevel } from '../helpers';
+import { canvasPixel, captureConsole, fixturePath, hasFixture, openLocalFiles, runCommand, viewport, windowLevel, matrix } from '../helpers';
 
 /** Matrix rows: MONOCHROME1 (MG-style), multi-frame cine (XA), RGB secondary capture. */
 
@@ -7,6 +7,7 @@ test.describe('synth-mono1 (MONOCHROME1 DX)', () => {
   test.skip(!hasFixture('synth/synth-mono1/synth-mono1.dcm'), 'fixture missing');
 
   test('high values render dark on a light background; invert flips it', async ({ page }) => {
+    matrix('fmt-dicom-file', 'crdx', 'mono1', 'cap-voi-header');
     const cap = captureConsole(page);
     await openLocalFiles(page, [fixturePath('synth/synth-mono1/synth-mono1.dcm')]);
     await expect(page.getByTestId('viewer-error')).toBeHidden();
@@ -29,6 +30,7 @@ test.describe('synth-multiframe (30-frame XA)', () => {
   test.skip(!hasFixture('synth/synth-multiframe/synth-multiframe.dcm'), 'fixture missing');
 
   test('expands frames, starts at frame 1, and cine advances', async ({ page }) => {
+    matrix('xa-cine', 'cap-cine', 'cap-stack');
     const cap = captureConsole(page);
     await openLocalFiles(page, [fixturePath('synth/synth-multiframe/synth-multiframe.dcm')]);
     await expect(page.getByTestId('viewer-error')).toBeHidden();
@@ -66,6 +68,7 @@ test.describe('synth-rgb (RGB secondary capture)', () => {
   test.skip(!hasFixture('synth/synth-rgb/synth-rgb.dcm'), 'fixture missing');
 
   test('renders true colour quadrants', async ({ page }) => {
+    matrix('sc-rgb');
     const cap = captureConsole(page);
     await openLocalFiles(page, [fixturePath('synth/synth-rgb/synth-rgb.dcm')]);
     await expect(page.getByTestId('viewer-error')).toBeHidden();

@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { matrix } from './helpers';
 
 /** App shell: routes render, no console errors, PACS-offline state is honest. */
 test.describe('app shell', () => {
   test('studies page renders and reports PACS state without console errors', async ({ page }) => {
+    matrix('cap-no-backend');
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -17,6 +19,7 @@ test.describe('app shell', () => {
   });
 
   test('local files and upload routes render', async ({ page }) => {
+    matrix('cap-no-backend');
     await page.goto('/local');
     await expect(page.getByTestId('local-dropzone')).toBeVisible();
     await page.goto('/upload');

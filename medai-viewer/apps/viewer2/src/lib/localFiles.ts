@@ -11,6 +11,29 @@ export function stageLocalFiles(files: File[]): string {
   return token;
 }
 
+/** Expand any .zip archives in the selection into their member files (in memory). */
+export async function expandArchives(files: File[]): Promise<{ files: File[]; skipped: string[] }> {
+  const out: File[] = [];
+  const skipped: string[] = [];
+  for (const f of files) {
+    if (!/\.zip$/i.test(f.name)) {
+      out.push(f);
+      continue;
+    }
+    try {
+      const { unzipSync } = await import('fflate');
+      const entries = unzipSync(new Uint8Array(await f.arrayBuffer()));
+      for (const [path, bytes] of Object.entries(entries)) {
+        if (path.endsWith('/') || /(^|\/)(__MACOSX|\.)/.test(path) || bytes.length === 0) continue;
+        out.push(new File([bytes.slice().buffer as ArrayBuffer], path.split('/').pop() ?? path, { type: 'application/octet-stream' }));
+      }
+    } catch (e) {
+      skipped.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  return { files: out, skipped };
+}
+
 export function takeLocalFiles(token: string): File[] | undefined {
   return staged.get(token);
 }

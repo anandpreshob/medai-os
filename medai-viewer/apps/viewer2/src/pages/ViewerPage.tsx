@@ -7,7 +7,7 @@ import { installKeyboard } from '../engine/keyboard';
 import { loadDicomWebStudy } from '../engine/loaders/dicomweb';
 import { loadLocalDicomFiles } from '../engine/loaders/localDicom';
 import { isVolumeFile, loadVolumeFile } from '../engine/loaders/volumeFiles';
-import { takeLocalFiles } from '../lib/localFiles';
+import { expandArchives, takeLocalFiles } from '../lib/localFiles';
 import { useSession, type OpenSeries, type OpenStudy } from '../state/session';
 import { Toolbar } from '../components/Toolbar';
 import { SeriesPanel } from '../components/SeriesPanel';
@@ -46,8 +46,11 @@ export function ViewerPage() {
       if (studyUID) {
         study = await loadDicomWebStudy(studyUID, (message, fraction) => s.setLoading(true, message, fraction));
       } else if (localToken) {
-        const files = takeLocalFiles(localToken);
-        if (!files) throw new Error('These local files are no longer staged — open them again.');
+        const staged = takeLocalFiles(localToken);
+        if (!staged) throw new Error('These local files are no longer staged — open them again.');
+        const expanded = await expandArchives(staged);
+        skipped.push(...expanded.skipped);
+        const files = expanded.files;
         const dicomFiles = files.filter((f) => !isVolumeFile(f.name) && !/\.raw$/i.test(f.name));
         const volumeFiles = files.filter((f) => isVolumeFile(f.name));
         if (dicomFiles.length) {

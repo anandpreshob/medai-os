@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, viewport } from '../helpers';
+import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, viewport, matrix } from '../helpers';
 
 /** Matrix rows: oblique acquisitions, anisotropic spacing, SEG/RTSTRUCT listed as derived objects. */
 
@@ -7,6 +7,7 @@ test.describe('synth-oblique (20° rotated CT)', () => {
   test.skip(!hasFixture('synth/synth-oblique/dicom'), 'fixture missing');
 
   test('sorts and labels correctly and builds an MPR volume', async ({ page }) => {
+    matrix('geom-oblique', 'cap-orientation', 'cap-mpr');
     const cap = captureConsole(page);
     await openLocalFiles(page, filesUnder(fixturePath('synth/synth-oblique/dicom')));
     await expect(page.getByTestId('viewer-error')).toBeHidden();
@@ -25,6 +26,7 @@ test.describe('synth-anisotropic (0.5 × 0.5 × 3 mm)', () => {
   test.skip(!hasFixture('synth/synth-anisotropic/dicom'), 'fixture missing');
 
   test('reports spacing and thickness and reformats with the right geometry', async ({ page }) => {
+    matrix('geom-anisotropic', 'cap-scalebar', 'cap-overlay-text', 'cap-mpr');
     const cap = captureConsole(page);
     await openLocalFiles(page, filesUnder(fixturePath('synth/synth-anisotropic/dicom')));
     await expect(page.getByTestId('viewer-error')).toBeHidden();
@@ -44,6 +46,7 @@ test.describe('derived objects alongside images', () => {
   test.skip(!hasFixture('synth/synth-seg') || !hasFixture('synth/synth-rtstruct') || !hasFixture('synth/synth-ct-cube/dicom'), 'fixture missing');
 
   test('SEG and RTSTRUCT are listed as objects, the CT is displayed', async ({ page }) => {
+    matrix('seg-listed', 'rtstruct-listed');
     const cap = captureConsole(page);
     const files = [...filesUnder(fixturePath('synth/synth-ct-cube/dicom')), ...filesUnder(fixturePath('synth/synth-seg')), ...filesUnder(fixturePath('synth/synth-rtstruct'))].filter((f) =>
       /\.dcm$/i.test(f),

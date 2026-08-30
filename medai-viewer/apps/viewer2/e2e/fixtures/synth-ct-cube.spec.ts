@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, sliceInfo, viewport, waitForVolumes, windowLevel } from '../helpers';
+import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, sliceInfo, viewport, waitForVolumes, windowLevel, matrix } from '../helpers';
 
 /**
  * Matrix rows: "CT (uncompressed, single-frame series)", "DICOM folder", "Window/level from DICOM VOI",
@@ -13,6 +13,7 @@ const expected = hasFixture(FIX, 'expected.json') ? JSON.parse(readFileSync(fixt
 
 test.describe('synth-ct-cube (local DICOM series)', () => {
   test('loads the series, applies header VOI, labels orientation, scrolls and reaches MPR', async ({ page }) => {
+    matrix('fmt-dicom-folder', 'ct-uncompressed', 'cap-stack', 'cap-voi-header', 'cap-orientation', 'cap-scalebar', 'cap-overlay-text', 'cap-mpr', 'cap-commands');
     const cap = captureConsole(page);
     await openLocalFiles(page, filesUnder(fixturePath(FIX, 'dicom')));
 
@@ -66,6 +67,7 @@ test.describe('synth-ct-cube (local DICOM series)', () => {
   });
 
   test('NIfTI, NRRD and MetaImage copies load with the same geometry', async ({ page }) => {
+    matrix('fmt-nifti', 'fmt-nrrd', 'fmt-mha');
     for (const file of ['synth-ct-cube.nii.gz', 'synth-ct-cube.nrrd', 'synth-ct-cube.mha']) {
       if (!hasFixture(FIX, file)) continue;
       const cap = captureConsole(page);

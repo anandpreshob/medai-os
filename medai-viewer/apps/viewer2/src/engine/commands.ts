@@ -192,6 +192,14 @@ export const VIEWER_COMMANDS: CommandDefinition<any, any>[] = [
     },
   },
   {
+    id: 'measure.list',
+    title: 'List measurements',
+    description: 'List every measurement in the open study with its tool, points (world mm) and computed statistics (length in mm, area in mm², mean/std/min/max in modality units).',
+    category: 'measure',
+    input: { type: 'object', additionalProperties: false },
+    run: () => viewports.listAnnotations(),
+  },
+  {
     id: 'measure.deleteSelected',
     title: 'Delete selected measurement',
     description: 'Delete the currently selected measurement annotation(s).',

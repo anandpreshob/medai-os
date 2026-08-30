@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, viewport, waitForVolumes } from '../helpers';
+import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, runCommand, viewport, waitForVolumes, matrix } from '../helpers';
 
 /** Real acquisitions: Slicer MR head (DICOM + NRRD), Slicer CT chest (NRRD), Orthanc demo CT+RT and PET/CT. */
 
 test.describe('Slicer sample data', () => {
   test('MRHead DICOM series (130 slices, sagittal)', async ({ page }) => {
+    matrix('fmt-dicom-folder', 'mr', 'cap-mpr', 'cap-vr', 'cap-layouts', 'cap-orientation');
     const dir = 'slicer/deidentifiedMRHead-dcm-one-series';
     test.skip(!hasFixture(dir), 'fixture missing');
     const cap = captureConsole(page);
@@ -26,6 +27,7 @@ test.describe('Slicer sample data', () => {
 
   for (const f of ['MR-head.nrrd', 'CT-chest.nrrd']) {
     test(`${f} loads as a volume`, async ({ page }) => {
+    matrix('fmt-nrrd');
       test.skip(!hasFixture('slicer', f), 'fixture missing');
       const cap = captureConsole(page);
       await openLocalFiles(page, [fixturePath('slicer', f)]);
@@ -38,6 +40,7 @@ test.describe('Slicer sample data', () => {
   }
 
   test('DTI-Brain.nrrd (9-component) is refused with a clear message', async ({ page }) => {
+    matrix('fmt-nrrd-multicomponent');
     test.skip(!hasFixture('slicer', 'DTI-Brain.nrrd'), 'fixture missing');
     await openLocalFiles(page, [fixturePath('slicer', 'DTI-Brain.nrrd')]);
     await expect(page.getByTestId('viewer-error')).toContainText(/component/i);
@@ -46,6 +49,7 @@ test.describe('Slicer sample data', () => {
 
 test.describe('Orthanc demo studies', () => {
   test('HN_P001: CT + RTSTRUCT + RTDOSE', async ({ page }) => {
+    matrix('ct-uncompressed', 'rtstruct-listed', 'rtdose-listed', 'cap-mpr', 'cap-voi-header');
     const dir = 'orthanc-demo/HN_P001';
     test.skip(!hasFixture(dir), 'fixture missing');
     test.setTimeout(240_000);
@@ -68,6 +72,7 @@ test.describe('Orthanc demo studies', () => {
   });
 
   test('COMUNIX: PET and CT side by side', async ({ page }) => {
+    matrix('pet-raw', 'cap-layouts', 'cap-series-selector');
     const dir = 'orthanc-demo/COMUNIX';
     test.skip(!hasFixture(dir), 'fixture missing');
     test.setTimeout(240_000);

@@ -506,6 +506,31 @@ export class ViewportManager {
     }
   }
 
+  /** Flat, serialisable list of measurement annotations with their computed stats (mm, mm², HU…). */
+  listAnnotations(): MeasurementSummary[] {
+    const all = annotation.state.getAllAnnotations() as unknown as RawAnnotation[];
+    return all
+      .filter((a) => a?.metadata?.toolName && !/OrientationMarker|ScaleOverlay|ReferenceLines|Crosshairs/.test(a.metadata.toolName))
+      .map((a) => {
+        const statsByTarget = a.data?.cachedStats ?? {};
+        const first = Object.values(statsByTarget)[0] ?? {};
+        const stats: Record<string, number | string> = {};
+        for (const [k, v] of Object.entries(first)) {
+          if (typeof v === 'number' && Number.isFinite(v)) stats[k] = Number(v.toFixed(3));
+          else if (typeof v === 'string') stats[k] = v;
+        }
+        return {
+          uid: a.annotationUID,
+          tool: a.metadata.toolName,
+          label: a.data?.label ?? '',
+          frameOfReferenceUID: a.metadata.FrameOfReferenceUID,
+          referencedImageId: a.metadata.referencedImageId,
+          points: (a.data?.handles?.points ?? []).map((p) => p.map((v) => Number(v.toFixed(2)))),
+          stats,
+        };
+      });
+  }
+
   deleteSelectedAnnotations(): number {
     const uids = annotation.selection.getAnnotationsSelected();
     uids.forEach((uid) => annotation.state.removeAnnotation(uid));
@@ -583,6 +608,22 @@ export class ViewportManager {
     this.volumeIds.clear();
     cache.purgeCache();
   }
+}
+
+export interface MeasurementSummary {
+  uid: string;
+  tool: string;
+  label: string;
+  frameOfReferenceUID?: string;
+  referencedImageId?: string;
+  points: number[][];
+  stats: Record<string, number | string>;
+}
+
+interface RawAnnotation {
+  annotationUID: string;
+  metadata: { toolName: string; FrameOfReferenceUID?: string; referencedImageId?: string };
+  data?: { label?: string; cachedStats?: Record<string, Record<string, unknown>>; handles?: { points?: number[][] } };
 }
 
 /** Dominant LPS axis label of a direction vector (sign flips for the opposite screen edge). */

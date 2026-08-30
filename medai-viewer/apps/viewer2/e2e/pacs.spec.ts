@@ -1,5 +1,5 @@
 import { expect, test, request as pwRequest } from '@playwright/test';
-import { captureConsole, filesUnder, fixturePath, hasFixture, runCommand, viewport, waitForViewer } from './helpers';
+import { captureConsole, filesUnder, fixturePath, hasFixture, runCommand, viewport, waitForViewer, matrix } from './helpers';
 
 /**
  * PACS path: STOW-RS upload → QIDO study list → WADO-RS retrieval → MPR.
@@ -42,6 +42,7 @@ test.describe('PACS round trip', () => {
   });
 
   test('upload with STOW-RS, find with QIDO, open with WADO-RS, reformat', async ({ page }) => {
+    matrix('cap-pacs-stow', 'cap-pacs-qido', 'cap-pacs-wado');
     test.setTimeout(180_000);
     const cap = captureConsole(page);
     await page.goto('/upload');

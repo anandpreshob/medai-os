@@ -36,7 +36,7 @@ export function LocalFilesPage() {
         data-testid="local-dropzone"
       >
         <FolderOpen size={28} />
-        <div>Drop DICOM files, a DICOM folder, or NIfTI / NRRD / MetaImage volumes</div>
+        <div>Drop DICOM files, a DICOM folder or .zip, or NIfTI / NRRD / MetaImage volumes</div>
         <div className="flex gap-2">
           <button className="btn" onClick={() => inputRef.current?.click()} data-testid="choose-files">
             Choose files
