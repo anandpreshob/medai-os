@@ -65,7 +65,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install fixture tooling
-        run: pip install "pydicom>=3.0" numpy SimpleITK pillow highdicom pyjpegls
+        run: pip install "pydicom>=3.0" numpy nibabel SimpleITK pillow highdicom pyjpegls
       - name: Cache downloaded fixtures
         uses: actions/cache@v4
         with:
