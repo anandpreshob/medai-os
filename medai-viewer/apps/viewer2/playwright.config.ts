@@ -23,7 +23,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     viewport: { width: 1400, height: 900 },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Locally: drive the installed Google Chrome (no browser download). CI: Playwright's pinned Chromium.
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } }],
   webServer: {
     command: 'pnpm exec vite --port 3100 --strictPort',
     url: 'http://localhost:3100',
