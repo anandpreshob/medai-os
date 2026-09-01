@@ -40,7 +40,7 @@ jobs:
         # orthancteam/orthanc reads ORTHANC__* env config; jodogne/orthanc-plugins ignores env vars
         # (config files only) and so came up with remote access disabled. Verified locally with
         # this exact env: /system and /dicom-web/studies both answer 200 from the host.
-        image: orthancteam/orthanc:26.04
+        image: orthancteam/orthanc:26.8.2
         ports:
           - 8042:8042
         env:
