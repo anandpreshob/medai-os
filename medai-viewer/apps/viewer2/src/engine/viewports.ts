@@ -134,7 +134,7 @@ export class ViewportManager {
     eventTarget.addEventListener(Enums.Events.IMAGE_VOLUME_LOADING_COMPLETED, (evt: Event) => {
       const volumeId = (evt as CustomEvent<{ volumeId?: string }>).detail?.volumeId;
       if (!volumeId) return;
-      this.volumeProgress.set(volumeId, 100);
+      this.raiseProgress(volumeId, 100);
       for (const [k, v] of this.slots) if (v.displaySetId && this.volumeIds.get(v.displaySetId) === volumeId) this.emit(k);
     });
   }
@@ -289,7 +289,10 @@ export class ViewportManager {
     this.emit(i);
   }
 
-  /** Volume for a series, created and streaming on first use. */
+  /** In-flight createAndCacheVolume calls, so concurrent show()s (e.g. an MPR layout switch) share one. */
+  private volumeCreates = new Map<string, Promise<string>>();
+
+  /** Volume for a series, created and streaming on first use. Concurrency-safe. */
   async ensureVolume(series: OpenSeries): Promise<string> {
     const existing = series.volumeId ?? this.volumeIds.get(series.id);
     if (existing && cache.getVolume(existing)) {
@@ -297,21 +300,37 @@ export class ViewportManager {
       if (!this.volumeProgress.has(existing)) this.volumeProgress.set(existing, 100);
       return existing;
     }
+    const pending = this.volumeCreates.get(series.id);
+    if (pending) return pending;
     if (series.imageIds.length === 0) throw new Error(`${series.description}: no images to build a volume from`);
-    const volumeId = `cornerstoneStreamingImageVolume:${series.id}`;
-    const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds: series.imageIds });
-    this.volumeIds.set(series.id, volumeId);
-    this.volumeProgress.set(volumeId, 0);
-    const total = series.imageIds.length;
-    let loaded = 0;
-    (volume as unknown as { load: (cb?: (evt: unknown) => void) => void }).load((evt) => {
-      const e = (evt ?? {}) as { framesLoaded?: number; framesProcessed?: number; numFrames?: number; totalNumFrames?: number };
-      loaded = Math.max(loaded, e.framesLoaded ?? e.framesProcessed ?? loaded + 1);
-      const denom = e.totalNumFrames ?? e.numFrames ?? total;
-      this.volumeProgress.set(volumeId, Math.min(100, Math.round((loaded / Math.max(1, denom)) * 100)));
-      for (const [k, v] of this.slots) if (v.displaySetId === series.id) this.emit(k);
-    });
-    return volumeId;
+    const create = (async () => {
+      const volumeId = `cornerstoneStreamingImageVolume:${series.id}`;
+      const volume = await volumeLoader.createAndCacheVolume(volumeId, { imageIds: series.imageIds });
+      this.volumeIds.set(series.id, volumeId);
+      this.raiseProgress(volumeId, 0);
+      const total = series.imageIds.length;
+      let loaded = 0;
+      (volume as unknown as { load: (cb?: (evt: unknown) => void) => void }).load((evt) => {
+        const e = (evt ?? {}) as { framesLoaded?: number; framesProcessed?: number; numFrames?: number; totalNumFrames?: number };
+        loaded = Math.max(loaded, e.framesLoaded ?? e.framesProcessed ?? loaded + 1);
+        const denom = e.totalNumFrames ?? e.numFrames ?? total;
+        this.raiseProgress(volumeId, Math.min(100, Math.round((loaded / Math.max(1, denom)) * 100)));
+        for (const [k, v] of this.slots) if (v.displaySetId === series.id) this.emit(k);
+      });
+      return volumeId;
+    })();
+    this.volumeCreates.set(series.id, create);
+    try {
+      return await create;
+    } finally {
+      this.volumeCreates.delete(series.id);
+    }
+  }
+
+  /** Progress only ever goes up; late callbacks must not rewind a finished volume. */
+  private raiseProgress(volumeId: string, value: number): void {
+    const current = this.volumeProgress.get(volumeId) ?? -1;
+    if (value > current) this.volumeProgress.set(volumeId, value);
   }
 
   // ---------- queries ----------
@@ -393,7 +412,14 @@ export class ViewportManager {
     const s = this.slots.get(i);
     if (!s?.kind || s.kind === 'stack') return 100;
     const volumeId = s.displaySetId ? this.volumeIds.get(s.displaySetId) : undefined;
-    return volumeId ? this.volumeProgress.get(volumeId) ?? 0 : 100;
+    if (!volumeId) return 100;
+    // The volume's own load status is authoritative; the callback tally is only for the moving bar.
+    const vol = cache.getVolume(volumeId) as unknown as { loadStatus?: { loaded?: boolean } } | undefined;
+    if (vol?.loadStatus?.loaded) {
+      this.raiseProgress(volumeId, 100);
+      return 100;
+    }
+    return this.volumeProgress.get(volumeId) ?? 0;
   }
 
   /** Displayed intensity (after modality LUT / SUV pre-scaling) at a world position. Volume viewports only. */
