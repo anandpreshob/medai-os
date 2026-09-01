@@ -310,12 +310,20 @@ export class ViewportManager {
       this.raiseProgress(volumeId, 0);
       const total = series.imageIds.length;
       let loaded = 0;
+      let lastEmit = 0;
       (volume as unknown as { load: (cb?: (evt: unknown) => void) => void }).load((evt) => {
         const e = (evt ?? {}) as { framesLoaded?: number; framesProcessed?: number; numFrames?: number; totalNumFrames?: number };
         loaded = Math.max(loaded, e.framesLoaded ?? e.framesProcessed ?? loaded + 1);
         const denom = e.totalNumFrames ?? e.numFrames ?? total;
-        this.raiseProgress(volumeId, Math.min(100, Math.round((loaded / Math.max(1, denom)) * 100)));
-        for (const [k, v] of this.slots) if (v.displaySetId === series.id) this.emit(k);
+        const pct = Math.min(100, Math.round((loaded / Math.max(1, denom)) * 100));
+        this.raiseProgress(volumeId, pct);
+        // Throttle React re-renders: one per 250 ms is plenty for a progress bar (per-frame emits
+        // quadruple the render load of an MPR layout while the volume streams).
+        const now = Date.now();
+        if (pct === 100 || now - lastEmit > 250) {
+          lastEmit = now;
+          for (const [k, v] of this.slots) if (v.displaySetId === series.id) this.emit(k);
+        }
       });
       return volumeId;
     })();

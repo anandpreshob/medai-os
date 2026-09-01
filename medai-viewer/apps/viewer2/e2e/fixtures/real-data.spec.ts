@@ -5,6 +5,7 @@ import { captureConsole, filesUnder, fixturePath, hasFixture, openLocalFiles, ru
 
 test.describe('Slicer sample data', () => {
   test('MRHead DICOM series (130 slices, sagittal)', async ({ page }) => {
+    test.setTimeout(240_000); // software WebGL on CI streams the 130-slice volume slowly
     matrix('fmt-dicom-folder', 'mr', 'cap-mpr', 'cap-vr', 'cap-layouts', 'cap-orientation');
     const dir = 'slicer/deidentifiedMRHead-dcm-one-series';
     test.skip(!hasFixture(dir), 'fixture missing');
