@@ -55,7 +55,7 @@ requests-toolbelt==1.0.0
 urllib3==1.26.20
 scikit-learn==1.7.2
 scipy==1.15.3
-Pillow==12.1.0
+Pillow==12.3.0
 
 # Auth (pinned)
 passlib==1.7.4
