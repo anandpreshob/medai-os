@@ -19,7 +19,7 @@ information. Operators are solely responsible for:
 - **Orthanc** ships with authentication disabled and permissive defaults for
   local development. Before exposing it beyond localhost, enable
   `AuthenticationEnabled`, change the placeholder credentials in
-  `MedAI-server/orthanc/orthanc.json`, and put it behind TLS.
+  `MedAI-server/orthanc/config/orthanc.json`, and put it behind TLS.
 - Never committing patient data or secrets to source control.
 
 ## Reporting a vulnerability

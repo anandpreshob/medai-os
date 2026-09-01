@@ -74,6 +74,9 @@ export * from './stores/recistTypes';
 export * from './stores/recistStore';
 export * from './utils/recistMetrics';
 
+// Commands (the single action vocabulary: UI, keyboard, and agent all call these)
+export * from './commands';
+
 // Features (boot-time flags gating optional capabilities)
 export * from './features';
 

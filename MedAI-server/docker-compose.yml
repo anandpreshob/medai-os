@@ -36,7 +36,7 @@ services:
   # Provides DICOMweb API for study upload, browsing, and retrieval.
   # SECURITY: authentication is DISABLED by default for local development.
   # Before exposing Orthanc beyond localhost, set AuthenticationEnabled=true
-  # and change the placeholder users in orthanc/orthanc.json.
+  # and change the placeholder users in orthanc/config/orthanc.json.
   orthanc:
     image: jodogne/orthanc-plugins:latest
     container_name: medai-orthanc
@@ -48,7 +48,7 @@ services:
       - "4242:4242"   # DICOM port
       - "8042:8042"   # HTTP REST API / DICOMweb
     volumes:
-      - ./orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - ./orthanc/config:/etc/orthanc:ro
       - orthanc-db:/var/lib/orthanc/db
     environment:
       - ORTHANC__NAME=MedAI-PACS

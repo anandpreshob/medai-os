@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   viewer-build:
-    name: Viewer build
+    name: Viewer build + typecheck + unit tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,11 +22,84 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
           cache-dependency-path: medai-viewer/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @medai/core typecheck
+      - run: pnpm --filter @medai/core exec vitest run
+      - run: pnpm --filter @medai/viewer2 typecheck
       - run: pnpm build
+
+  tier1-viewer-e2e:
+    name: Tier 1 viewer — fixture matrix (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      orthanc:
+        image: jodogne/orthanc-plugins:1.12.4
+        ports:
+          - 8042:8042
+        env:
+          ORTHANC__NAME: ci
+          ORTHANC__REMOTE_ACCESS_ALLOWED: "true"
+          ORTHANC__AUTHENTICATION_ENABLED: "false"
+          ORTHANC__DICOM_WEB__ENABLE: "true"
+        options: >-
+          --health-cmd "wget -qO- http://localhost:8042/system || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: medai-viewer/pnpm-lock.yaml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install fixture tooling
+        run: pip install "pydicom>=3.0" numpy SimpleITK pillow highdicom pyjpegls
+      - name: Cache downloaded fixtures
+        uses: actions/cache@v4
+        with:
+          path: sample-data
+          key: sample-data-${{ hashFiles('scripts/sample-data/manifest.json') }}
+      - name: Generate synthetic fixtures
+        run: python3 scripts/sample-data/synth.py
+      - name: Fetch public fixtures (corpus + Slicer)
+        run: |
+          python3 scripts/sample-data/fetch.py --fixture pydicom-corpus --fixture slicer-mrhead --fixture slicer-ctchest --fixture slicer-mrhead-dcm --fixture slicer-dti
+          python3 scripts/sample-data/fetch.py --verify
+      - run: pnpm install --frozen-lockfile
+        working-directory: medai-viewer
+      - run: pnpm --filter @medai/viewer2 exec playwright install --with-deps chromium
+        working-directory: medai-viewer
+      - name: Run fixture matrix
+        working-directory: medai-viewer/apps/viewer2
+        env:
+          CI: "true"
+          ORTHANC_URL: http://localhost:8042
+        run: pnpm exec playwright test
+      - name: Render verification matrix
+        if: always()
+        working-directory: medai-viewer/apps/viewer2
+        run: node scripts/render-matrix.mjs
+      - name: Upload matrix + report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier1-verification-matrix
+          path: |
+            docs/roadmap/02_TIER1_VERIFICATION_MATRIX.md
+            docs/roadmap/matrix.json
+            medai-viewer/apps/viewer2/test-results/report.json
+            medai-viewer/apps/viewer2/test-results/*.png
+            medai-viewer/apps/viewer2/playwright-report
+          retention-days: 14
 
   compose-config:
     name: Compose config validates
@@ -37,7 +110,7 @@ jobs:
         run: |
           cd MedAI-server
           docker compose config -q
-          for p in segmentation ai chat; do
+          for p in segmentation ai; do
             docker compose --profile "$p" config -q
           done
 

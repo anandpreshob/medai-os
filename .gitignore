@@ -281,7 +281,7 @@ medai-viewer/**/*.png
 .vscode
 .claude
 .playwright-mcp
-sample-data/
+/sample-data/
 MedAI-server/checkpoints/*.json
 MedAI-server/sample-dicom/
 MedAI-server/*.server.yml

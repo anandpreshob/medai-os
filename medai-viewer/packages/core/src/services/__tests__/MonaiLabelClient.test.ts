@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MonaiLabelClient, ServerInfo, InferenceResult } from '../MonaiLabelClient';
 
@@ -55,7 +56,7 @@ describe('MonaiLabelClient', () => {
 
       const info = await client.info();
 
-      expect(mockFetch).toHaveBeenCalledWith(`${serverUrl}/info`, {
+      expect(mockFetch).toHaveBeenCalledWith(`${serverUrl}/info/`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });

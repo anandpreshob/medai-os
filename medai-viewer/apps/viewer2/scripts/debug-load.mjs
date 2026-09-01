@@ -1,0 +1,15 @@
+import { chromium } from '@playwright/test';
+import { readdirSync, statSync } from 'node:fs';
+const target = process.argv[2];
+const files = statSync(target).isDirectory() ? readdirSync(target).filter(f => !f.startsWith('.')).sort().map(f => `${target}/${f}`) : [target];
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+page.on('console', m => { if (['error','warning'].includes(m.type())) console.log(`[${m.type()}]`, m.text().slice(0, 1200)); });
+page.on('pageerror', e => console.log('[pageerror]', e.stack));
+await page.goto('http://localhost:3100/local');
+await page.getByTestId('local-file-input').setInputFiles(files);
+await page.waitForTimeout(Number(process.argv[3] ?? 10000));
+const vp = page.getByTestId('viewport-0');
+console.log('slice-count', await vp.getAttribute('data-slice-count'), 'ww', await vp.getAttribute('data-window-width'), 'err', await page.getByTestId('viewer-error').textContent().catch(()=>null), 'vperr', await page.getByTestId('viewport-error').textContent().catch(()=>null));
+await page.screenshot({ path: '/private/tmp/claude-501/-Users-anandkadumberi-Projects-medai-os-release/5dabc949-2595-4745-ab32-5e76a4c78705/scratchpad/debug.png' });
+await browser.close();
