@@ -37,7 +37,10 @@ jobs:
     timeout-minutes: 40
     services:
       orthanc:
-        image: jodogne/orthanc-plugins:1.12.4
+        # orthancteam/orthanc reads ORTHANC__* env config; jodogne/orthanc-plugins ignores env vars
+        # (config files only) and so came up with remote access disabled. Verified locally with
+        # this exact env: /system and /dicom-web/studies both answer 200 from the host.
+        image: orthancteam/orthanc:26.04
         ports:
           - 8042:8042
         env:
@@ -46,8 +49,8 @@ jobs:
           ORTHANC__AUTHENTICATION_ENABLED: "false"
           ORTHANC__DICOM_WEB__ENABLE: "true"
         options: >-
-          --health-cmd "wget -qO- http://localhost:8042/system || exit 1"
-          --health-interval 10s --health-timeout 5s --health-retries 12
+          --health-cmd "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8042/system')\""
+          --health-interval 10s --health-timeout 5s --health-retries 18
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -78,6 +81,8 @@ jobs:
         working-directory: medai-viewer
       - run: pnpm --filter @medai/viewer2 exec playwright install --with-deps chromium
         working-directory: medai-viewer
+      - name: Wait for Orthanc
+        run: curl -sf --retry 20 --retry-delay 3 --retry-all-errors http://localhost:8042/system
       - name: Run fixture matrix
         working-directory: medai-viewer/apps/viewer2
         env:
