@@ -28,5 +28,5 @@ anthropic==0.39.0
 # Utilities
 python-dotenv==1.0.1
 pyyaml==6.0.2
-Pillow==11.0.0
+Pillow==12.3.0
 numpy==1.26.4
