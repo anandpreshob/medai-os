@@ -5,7 +5,7 @@
 # Image Size: ~12GB | Dependencies: 45
 
 # Core ML frameworks (pinned to working versions)
-monai[nibabel, skimage, pillow, tensorboard, gdown, ignite, torchvision, itk, tqdm, lmdb, psutil, openslide, fire, mlflow]==1.5.1
+monai[nibabel, skimage, pillow, tensorboard, gdown, ignite, torchvision, itk, tqdm, lmdb, psutil, openslide, fire, mlflow]==1.6.0
 torch==2.6.0
 torchvision==0.21.0
 numpy==1.26.4
